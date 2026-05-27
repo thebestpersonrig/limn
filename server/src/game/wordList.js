@@ -1,96 +1,64 @@
 export const words = [
-  // Animals
-  "cat", "dog", "fish", "bird", "frog", "snake", "pig", "cow", "horse", "sheep",
-  "rabbit", "duck", "bee", "ant", "bear", "lion", "tiger", "elephant", "monkey",
-  "penguin", "owl", "butterfly", "snail", "crab", "turtle", "shark", "whale",
-  "octopus", "flamingo", "bat", "fox", "wolf", "deer", "giraffe", "zebra", "parrot",
-  "eagle", "swan", "jellyfish", "lobster", "hamster", "panda", "koala", "kangaroo",
-  "gorilla", "crocodile", "seal", "dolphin", "hedgehog", "squirrel", "peacock",
-  "toucan", "chipmunk", "moose", "bison", "camel", "llama", "otter", "walrus",
-  "narwhal", "axolotl", "chameleon", "gecko", "parrot", "rooster", "chick",
-  "tadpole", "worm", "caterpillar", "dragonfly", "ladybug", "grasshopper", "mosquito",
-  "spider", "scorpion", "crab", "shrimp", "starfish", "clam", "snail", "slug",
+  // Simple shapes & symbols
+  "heart", "star", "arrow", "spiral", "circle", "smiley face", "sad face",
+  "lightning bolt", "rainbow", "question mark", "exclamation mark", "cross",
+  "diamond", "crown", "skull", "eye", "thumbs up", "peace sign",
 
-  // Food & Drinks
-  "apple", "banana", "pizza", "cake", "ice cream", "hot dog", "burger", "cookie",
-  "bread", "egg", "donut", "taco", "watermelon", "strawberry", "cherry", "grape",
-  "lemon", "orange", "pear", "pineapple", "muffin", "candy", "sandwich", "fries",
-  "popcorn", "waffle", "pancake", "sushi", "carrot", "broccoli", "corn", "mushroom",
-  "onion", "tomato", "avocado", "pepper", "potato", "pretzel", "croissant", "bagel",
-  "spaghetti", "ramen", "dumpling", "burrito", "nachos", "churro", "macaron",
-  "cupcake", "lollipop", "chocolate", "candy cane", "gummy bear", "marshmallow",
-  "smoothie", "milkshake", "coffee", "tea", "juice", "soda", "popsicle", "pudding",
-  "cheesecake", "brownie", "biscuit", "cracker", "ketchup", "mustard", "pickle",
+  // Sky & weather (clear silhouettes)
+  "sun", "moon", "cloud", "rain", "snowflake", "snowman", "rainbow",
+  "lightning", "shooting star", "crescent moon", "sunset",
 
-  // Household Objects
-  "chair", "table", "bed", "door", "window", "clock", "lamp", "mirror", "pillow",
-  "cup", "spoon", "fork", "knife", "plate", "pot", "pan", "kettle", "toaster",
-  "fridge", "oven", "sink", "toilet", "bathtub", "shower", "soap", "toothbrush",
-  "comb", "scissors", "broom", "mop", "bucket", "trash can", "ladder", "toolbox",
-  "hammer", "screw", "nail", "wrench", "saw", "paint brush", "candle", "vase",
-  "picture frame", "bookshelf", "couch", "rug", "curtain", "umbrella", "hanger",
-  "iron", "sewing needle", "thread", "button", "zipper", "lock", "key",
+  // Nature (simple shapes)
+  "tree", "flower", "cactus", "mushroom", "leaf", "grass", "mountain",
+  "volcano", "wave", "island", "campfire", "snowman",
 
-  // Clothing & Accessories
-  "hat", "sock", "shoe", "boot", "crown", "glasses", "ring", "scarf", "belt",
-  "bow tie", "glove", "mask", "jacket", "shirt", "shorts", "skirt", "dress",
-  "tie", "backpack", "purse", "wallet", "watch", "necklace", "earring", "bracelet",
-  "sneaker", "sandal", "flip flop", "helmet", "cap", "beanie",
+  // Food (iconic shapes)
+  "pizza", "donut", "ice cream", "burger", "hot dog", "banana", "apple",
+  "watermelon", "cherry", "lollipop", "candy cane", "cake", "cupcake",
+  "egg", "bread", "pretzel", "taco", "popsicle", "fries",
 
-  // Nature & Weather
-  "sun", "moon", "star", "cloud", "rain", "snow", "lightning", "rainbow", "tornado",
-  "tree", "flower", "leaf", "cactus", "mushroom", "grass", "bush", "vine",
-  "mountain", "volcano", "cave", "lake", "river", "waterfall", "beach", "island",
-  "desert", "forest", "snowflake", "icicle", "wave", "rock", "cliff", "glacier",
-  "puddle", "mud", "sand", "pebble", "seed", "sprout", "log", "stump",
+  // Simple animals (distinctive shape)
+  "fish", "snail", "butterfly", "spider", "crab", "jellyfish", "octopus",
+  "swan", "flamingo", "penguin", "duck", "cat", "dog", "rabbit", "snake",
+  "turtle", "frog", "bee", "ant", "worm", "starfish",
 
-  // Buildings & Places
-  "house", "castle", "igloo", "tent", "barn", "lighthouse", "windmill", "tower",
-  "bridge", "tunnel", "well", "fountain", "statue", "pyramid", "church", "school",
-  "hospital", "bank", "shop", "library", "museum", "stadium", "airport", "station",
-  "prison", "hotel", "cinema", "factory", "greenhouse", "treehouse",
+  // Vehicles (clear side-view shape)
+  "car", "bus", "boat", "plane", "rocket", "bicycle", "submarine",
+  "hot air balloon", "helicopter", "train", "skateboard", "canoe",
+  "ambulance", "fire truck", "sailboat",
 
-  // Vehicles & Transport
-  "car", "bus", "truck", "bike", "motorcycle", "scooter", "skateboard", "boat",
-  "ship", "submarine", "plane", "helicopter", "rocket", "hot air balloon", "train",
-  "tram", "taxi", "ambulance", "fire truck", "tractor", "bulldozer", "crane",
-  "canoe", "surfboard", "sleigh", "wagon",
+  // Buildings & structures (simple outline)
+  "house", "castle", "igloo", "tent", "lighthouse", "bridge", "windmill",
+  "pyramid", "barn", "treehouse",
 
-  // Sports & Activities
-  "soccer ball", "basketball", "tennis racket", "baseball bat", "bowling ball",
-  "golf club", "football", "volleyball", "frisbee", "kite", "fishing rod",
-  "surfing", "skiing", "ice skating", "boxing gloves", "medal", "trophy",
-  "dart", "bow and arrow", "slingshot", "jump rope",
+  // Objects with unique shape
+  "umbrella", "key", "lock", "scissors", "hourglass", "magnifying glass",
+  "anchor", "compass", "ladder", "telescope", "trophy", "medal",
+  "kite", "balloon", "bowtie", "glasses", "crown", "hat", "boot",
+  "sock", "glove", "ring", "envelope", "flag", "lantern", "candle",
+  "clock", "alarm clock", "phone", "pencil", "ruler", "paintbrush",
+  "guitar", "drum", "trumpet", "microphone", "headphones",
+  "book", "newspaper", "camera", "lightbulb", "battery", "plug",
+  "magnet", "syringe", "thermometer", "comb", "toothbrush",
+  "hammer", "wrench", "saw", "nail", "screw",
+  "bucket", "broom", "mop", "trash can", "mirror",
+  "chair", "table", "bed", "door", "window", "stairs", "ladder",
+  "mailbox", "streetlight", "traffic light", "stop sign", "fence",
 
-  // Music & Art
-  "guitar", "piano", "drum", "trumpet", "violin", "microphone", "headphones",
-  "music note", "paintbrush", "palette", "pencil", "crayon", "ruler", "compass",
-  "camera", "film", "trophy", "ticket", "mask", "stage curtain",
+  // Stick figure actions (draw a stick figure doing it)
+  "sleeping", "running", "jumping", "swimming", "surfing", "skiing",
+  "dancing", "eating", "reading", "fishing", "climbing", "falling",
+  "flying", "sitting", "waving", "boxing", "yoga",
 
-  // Fantasy & Fun
-  "dragon", "unicorn", "mermaid", "ghost", "robot", "alien", "wizard", "witch",
-  "vampire", "zombie", "pirate", "knight", "ninja", "superhero", "fairy",
-  "elf", "dwarf", "giant", "phoenix", "griffin", "spaceship", "ufo",
-  "magic wand", "crystal ball", "treasure chest", "map", "compass",
-  "potion", "sword", "shield", "bow", "arrow", "bomb", "cannon",
+  // Fantasy / fun (iconic shapes)
+  "ghost", "alien", "robot", "wizard hat", "magic wand",
+  "dragon", "unicorn", "sword", "shield", "bomb", "cannon",
+  "spaceship", "ufo", "black hole",
 
-  // Everyday Actions (draw a stick figure doing it)
-  "sleeping", "eating", "running", "jumping", "swimming", "dancing", "singing",
-  "reading", "writing", "cooking", "driving", "flying", "crying", "laughing",
-  "clapping", "waving", "climbing", "digging", "fishing", "painting",
-
-  // Simple Concepts
-  "heart", "star", "diamond", "circle", "arrow", "question mark", "exclamation",
-  "smiley face", "sad face", "thumbs up", "peace sign", "crossbones",
-  "flag", "sign", "traffic light", "fire", "water drop", "earth", "moon",
-
-  // Misc fun
-  "present", "birthday cake", "party hat", "balloon", "confetti", "fireworks",
-  "candle", "lantern", "campfire", "bonfire", "smoke", "explosion",
-  "footprint", "shadow", "echo", "bubble", "tornado", "whirlpool",
-  "hourglass", "calendar", "newspaper", "envelope", "stamp", "package",
-  "coin", "money bag", "credit card", "receipt", "magnifying glass",
-  "microscope", "telescope", "binoculars", "thermometer", "barometer",
+  // Misc (very visual)
+  "footprint", "handprint", "shadow", "explosion", "tornado",
+  "whirlpool", "target", "gift box", "treasure chest", "map",
+  "trophy", "podium", "finish line", "scoreboard",
 ];
 
 export function getRandomWords(count = 3) {
