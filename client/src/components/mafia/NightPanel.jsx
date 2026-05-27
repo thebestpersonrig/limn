@@ -9,7 +9,7 @@ export default function NightPanel({ role, players, myId, onAction, actionDone, 
     if (selected && !actionDone) onAction(selected);
   }
 
-  if (role === "civilian") {
+  if (!role || role === "civilian") {
     return (
       <div className="night-panel">
         <div className="night-panel-icon">🌙</div>

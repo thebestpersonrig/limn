@@ -6,7 +6,7 @@ import ChatPanel from "../components/mafia/ChatPanel";
 import NightPanel from "../components/mafia/NightPanel";
 import "./MafiaGame.css";
 
-export default function MafiaGame() {
+export default function MafiaGame({ initialRole }) {
   const socket = getSocket();
   const myId = socket.id;
 
@@ -14,9 +14,9 @@ export default function MafiaGame() {
   const [day,       setDay]       = useState(0);
   const [timeLeft,  setTimeLeft]  = useState(0);
   const [players,   setPlayers]   = useState([]);
-  const [myRole,    setMyRole]    = useState(null);
-  const [mafiaTeam, setMafiaTeam] = useState([]);
-  const [showRole,  setShowRole]  = useState(true);
+  const [myRole,    setMyRole]    = useState(initialRole?.role ?? null);
+  const [mafiaTeam, setMafiaTeam] = useState(initialRole?.mafiaTeam ?? []);
+  const [showRole,  setShowRole]  = useState(!!initialRole?.role);
 
   // Chat
   const [dayMessages,   setDayMessages]   = useState([]);
@@ -32,6 +32,14 @@ export default function MafiaGame() {
   // Results
   const [elimResult,  setElimResult]  = useState(null);
   const [nightResult, setNightResult] = useState(null);
+
+  // Auto-dismiss role card when mounting mid-roleReveal
+  useEffect(() => {
+    if (showRole && myRole) {
+      const t = setTimeout(() => setShowRole(false), 4500);
+      return () => clearTimeout(t);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function onRoleAssigned({ role, mafiaTeam }) {

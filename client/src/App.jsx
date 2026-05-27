@@ -18,6 +18,7 @@ export default function App() {
   const [roundData,    setRoundData]    = useState(null);
   const [finalPlayers, setFinalPlayers] = useState(null);
   const [mafiaEnd,     setMafiaEnd]     = useState(null);
+  const [mafiaRole,    setMafiaRole]    = useState(null); // {role, mafiaTeam}
   const [connected,    setConnected]    = useState(true);
   const screenRef = useRef(screen);
 
@@ -64,6 +65,10 @@ export default function App() {
   useEffect(() => {
     const s = getSocket();
 
+    function onMafiaRoleAssigned({ role, mafiaTeam }) {
+      // Capture role early — MafiaGame may not be mounted yet
+      setMafiaRole({ role, mafiaTeam });
+    }
     function onMafiaPhase({ phase }) {
       // When roleReveal starts, switch to the game screen
       if (phase === "roleReveal" && screenRef.current === "mafia-lobby") {
@@ -76,11 +81,13 @@ export default function App() {
       clearSession();
     }
 
-    s.on("mafia-phase",    onMafiaPhase);
-    s.on("mafia-game-end", onMafiaGameEnd);
+    s.on("mafia-role-assigned", onMafiaRoleAssigned);
+    s.on("mafia-phase",         onMafiaPhase);
+    s.on("mafia-game-end",      onMafiaGameEnd);
     return () => {
-      s.off("mafia-phase",    onMafiaPhase);
-      s.off("mafia-game-end", onMafiaGameEnd);
+      s.off("mafia-role-assigned", onMafiaRoleAssigned);
+      s.off("mafia-phase",         onMafiaPhase);
+      s.off("mafia-game-end",      onMafiaGameEnd);
     };
   }, []);
 
@@ -136,6 +143,7 @@ export default function App() {
     setRoundData(null);
     setFinalPlayers(null);
     setMafiaEnd(null);
+    setMafiaRole(null);
   }
 
   function handlePlayAgain() {
@@ -153,6 +161,7 @@ export default function App() {
     setScreen("mafia-home");
     setSessionData(null);
     setMafiaEnd(null);
+    setMafiaRole(null);
   }
 
   return (
@@ -204,7 +213,7 @@ export default function App() {
           playerName={sessionData.playerName}
         />
       )}
-      {screen === "mafia-game" && <MafiaGame />}
+      {screen === "mafia-game" && <MafiaGame initialRole={mafiaRole} />}
       {screen === "mafia-end" && mafiaEnd && (
         <MafiaEnd
           winner={mafiaEnd.winner}
