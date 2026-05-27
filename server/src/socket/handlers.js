@@ -23,8 +23,17 @@ export function registerHandlers(io) {
     socket.on("join-room", ({ code, name }) => {
       const room = rooms.get(code.toUpperCase());
       if (!room) return socket.emit("error", { message: "Room not found." });
-      if (room.state !== "lobby") return socket.emit("error", { message: "Game already in progress." });
       joinRoom(socket, room, name);
+      // If mid-game, send current round state so they can start guessing
+      if (room.state !== "lobby") {
+        socket.emit("round-start", {
+          round: room.round,
+          totalRounds: room.roundsPerGame * room.drawerQueue.length,
+          roundDuration: room.roundDuration,
+          drawerId: room.currentDrawerId,
+          players: room.getPlayersArray(),
+        });
+      }
     });
 
     socket.on("rejoin", ({ name, roomCode }) => {
@@ -55,10 +64,10 @@ export function registerHandlers(io) {
       if (room && socket.id === room.currentDrawerId) room.wordChosen(word);
     });
 
-    socket.on("draw", (data) => {
+    socket.on("draw-batch", (events) => {
       const room = rooms.get(currentRoomCode);
       if (room && socket.id === room.currentDrawerId)
-        socket.to(currentRoomCode).emit("draw-update", data);
+        socket.to(currentRoomCode).emit("draw-batch", events);
     });
 
     socket.on("draw-shape", (data) => {

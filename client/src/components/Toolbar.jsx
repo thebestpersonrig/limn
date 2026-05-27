@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getSocket } from "../hooks/useSocket";
+import { toolState } from "../state/toolState";
 import "./Toolbar.css";
 
 const COLORS = [
@@ -88,20 +89,16 @@ export default function Toolbar({ isDrawer }) {
   const [mode,  setMode]  = useState("pen");
   const socket = getSocket();
 
-  function setTool(updates) {
-    if (window.__lmnTool) Object.assign(window.__lmnTool, updates);
-  }
-
   function pickColor(c) {
     setColor(c);
     const next = mode === "eraser" ? "pen" : mode;
     if (mode === "eraser") setMode("pen");
-    setTool({ color: c, mode: next });
+    Object.assign(toolState, { color: c, mode: next });
   }
 
-  function pickSize(s) { setSize(s); setTool({ size: s }); }
+  function pickSize(s) { setSize(s); toolState.size = s; }
 
-  function pickMode(m) { setMode(m); setTool({ mode: m }); }
+  function pickMode(m) { setMode(m); toolState.mode = m; }
 
   function doUndo() { window.__lmnUndo?.(); }
 

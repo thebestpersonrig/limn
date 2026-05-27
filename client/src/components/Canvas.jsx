@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { getSocket } from "../hooks/useSocket";
+import { toolState } from "../state/toolState";
 
 function hexToRgb(hex) {
   return {
@@ -12,43 +13,34 @@ function hexToRgb(hex) {
 function floodFill(ctx, canvas, startX, startY, fillHex) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
-  const w = canvas.width;
-  const h = canvas.height;
-  const sx = Math.floor(startX);
-  const sy = Math.floor(startY);
+  const w = canvas.width, h = canvas.height;
+  const sx = Math.floor(startX), sy = Math.floor(startY);
   if (sx < 0 || sx >= w || sy < 0 || sy >= h) return;
 
   const base = (sy * w + sx) * 4;
-  const tR = data[base], tG = data[base + 1], tB = data[base + 2];
+  const tR = data[base], tG = data[base+1], tB = data[base+2];
   const fill = hexToRgb(fillHex);
   if (tR === fill.r && tG === fill.g && tB === fill.b) return;
 
   const tol = 32;
   function match(i) {
-    return Math.abs(data[i]   - tR) <= tol &&
-           Math.abs(data[i+1] - tG) <= tol &&
-           Math.abs(data[i+2] - tB) <= tol;
+    return Math.abs(data[i]  -tR)<=tol && Math.abs(data[i+1]-tG)<=tol && Math.abs(data[i+2]-tB)<=tol;
   }
 
   const visited = new Uint8Array(w * h);
   const stack = [sy * w + sx];
-
   while (stack.length) {
     const pos = stack.pop();
     if (visited[pos]) continue;
     const i4 = pos * 4;
     if (!match(i4)) continue;
     visited[pos] = 1;
-    data[i4]   = fill.r;
-    data[i4+1] = fill.g;
-    data[i4+2] = fill.b;
-    data[i4+3] = 255;
-    const px = pos % w;
-    const py = Math.floor(pos / w);
-    if (px + 1 < w)  stack.push(pos + 1);
-    if (px - 1 >= 0) stack.push(pos - 1);
-    if (py + 1 < h)  stack.push(pos + w);
-    if (py - 1 >= 0) stack.push(pos - w);
+    data[i4] = fill.r; data[i4+1] = fill.g; data[i4+2] = fill.b; data[i4+3] = 255;
+    const px = pos % w, py = Math.floor(pos / w);
+    if (px+1 < w)  stack.push(pos+1);
+    if (px-1 >= 0) stack.push(pos-1);
+    if (py+1 < h)  stack.push(pos+w);
+    if (py-1 >= 0) stack.push(pos-w);
   }
   ctx.putImageData(imageData, 0, 0);
 }
@@ -70,12 +62,16 @@ export default function Canvas({ isDrawer }) {
   const lastPos   = useRef(null);
   const snapshot  = useRef(null);
   const history   = useRef([]);
-  const toolRef   = useRef({ color: "#000000", size: 7, mode: "pen" });
+  // Batched pen/eraser events — flushed each animation frame
+  const pending   = useRef([]);
+  const rafId     = useRef(null);
   const socket    = getSocket();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx    = canvas.getContext("2d");
+
+    function isVisible() { return canvas.offsetParent !== null; }
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
@@ -87,16 +83,30 @@ export default function Canvas({ isDrawer }) {
     }
 
     function saveHistory() {
-      const url = canvas.toDataURL("image/jpeg", 0.7);
-      history.current.push(url);
+      history.current.push(canvas.toDataURL("image/jpeg", 0.7));
       if (history.current.length > 20) history.current.shift();
     }
 
+    function doClear() {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      history.current = [];
+    }
+
     function undo() {
-      if (!isDrawer || history.current.length === 0) return;
+      if (!isDrawer || !isVisible() || history.current.length === 0) return;
       const prev = history.current.pop();
       applyImageData(ctx, canvas, prev);
       socket.emit("canvas-undo", { imageData: prev });
+    }
+
+    // Flush batched pen/eraser events to server
+    function flushPending() {
+      rafId.current = null;
+      if (pending.current.length > 0) {
+        socket.emit("draw-batch", pending.current.splice(0));
+      }
     }
 
     function applyStroke(x0, y0, x1, y1, color, size, erase = false) {
@@ -108,41 +118,30 @@ export default function Canvas({ isDrawer }) {
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = color;
       }
-      ctx.lineWidth   = size;
-      ctx.lineCap     = "round";
-      ctx.lineJoin    = "round";
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
+      ctx.lineWidth = size; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
       ctx.globalCompositeOperation = prev;
     }
 
     function applyShape(type, x0, y0, x1, y1, color, size) {
       ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = color;
-      ctx.lineWidth   = size;
-      ctx.lineCap     = "round";
-      ctx.lineJoin    = "round";
+      ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath();
       if (type === "line") {
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-        ctx.stroke();
+        ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
       } else if (type === "rect") {
-        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        ctx.strokeRect(x0, y0, x1-x0, y1-y0);
       } else if (type === "circle") {
-        const rx = Math.abs(x1 - x0) / 2;
-        const ry = Math.abs(y1 - y0) / 2;
-        ctx.ellipse((x0 + x1) / 2, (y0 + y1) / 2, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
+        const rx = Math.abs(x1-x0)/2, ry = Math.abs(y1-y0)/2;
+        ctx.ellipse((x0+x1)/2, (y0+y1)/2, Math.max(rx,1), Math.max(ry,1), 0, 0, Math.PI*2);
         ctx.stroke();
       }
     }
 
     function onDown(e) {
       if (!isDrawer) return;
-      const pos  = getPos(e);
-      const { color, size, mode } = toolRef.current;
+      const pos = getPos(e);
+      const { color, size, mode } = toolState;
 
       if (mode === "fill") {
         saveHistory();
@@ -163,15 +162,18 @@ export default function Canvas({ isDrawer }) {
     function onMove(e) {
       if (!isDrawer || !drawing.current) return;
       e.preventDefault();
-      const pos  = getPos(e);
-      const { color, size, mode } = toolRef.current;
+      const pos = getPos(e);
+      const { color, size, mode } = toolState;
 
       if (mode === "pen") {
         applyStroke(lastPos.current.x, lastPos.current.y, pos.x, pos.y, color, size, false);
-        socket.emit("draw", { x0: lastPos.current.x, y0: lastPos.current.y, x1: pos.x, y1: pos.y, color, size });
+        // Batch emit — flush once per animation frame
+        pending.current.push({ x0: lastPos.current.x, y0: lastPos.current.y, x1: pos.x, y1: pos.y, color, size });
+        if (!rafId.current) rafId.current = requestAnimationFrame(flushPending);
       } else if (mode === "eraser") {
         applyStroke(lastPos.current.x, lastPos.current.y, pos.x, pos.y, "#ffffff", size, true);
-        socket.emit("draw", { x0: lastPos.current.x, y0: lastPos.current.y, x1: pos.x, y1: pos.y, color: "#ffffff", size });
+        pending.current.push({ x0: lastPos.current.x, y0: lastPos.current.y, x1: pos.x, y1: pos.y, color: "#ffffff", size });
+        if (!rafId.current) rafId.current = requestAnimationFrame(flushPending);
       } else if (snapshot.current) {
         ctx.putImageData(snapshot.current, 0, 0);
         applyShape(mode, startPos.current.x, startPos.current.y, pos.x, pos.y, color, size);
@@ -181,7 +183,7 @@ export default function Canvas({ isDrawer }) {
 
     function onUp() {
       if (!drawing.current) return;
-      const { color, size, mode } = toolRef.current;
+      const { color, size, mode } = toolState;
       if (isDrawer && snapshot.current && lastPos.current && startPos.current &&
           (mode === "line" || mode === "rect" || mode === "circle")) {
         ctx.putImageData(snapshot.current, 0, 0);
@@ -193,6 +195,11 @@ export default function Canvas({ isDrawer }) {
           color, size,
         });
       }
+      // Flush any remaining batched events immediately on release
+      if (pending.current.length > 0) {
+        if (rafId.current) { cancelAnimationFrame(rafId.current); rafId.current = null; }
+        socket.emit("draw-batch", pending.current.splice(0));
+      }
       drawing.current  = false;
       startPos.current = null;
       snapshot.current = null;
@@ -200,7 +207,7 @@ export default function Canvas({ isDrawer }) {
     }
 
     function onKeyDown(e) {
-      if (!isDrawer) return;
+      if (!isDrawer || !isVisible()) return;
       if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); undo(); }
     }
 
@@ -211,48 +218,36 @@ export default function Canvas({ isDrawer }) {
     canvas.addEventListener("touchstart", onDown, { passive: true });
     canvas.addEventListener("touchmove",  onMove, { passive: false });
     canvas.addEventListener("touchend",   onUp);
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown",    onKeyDown);
 
-    // ── Socket listeners ────────────────────────────────────
-    function onDrawUpdate({ x0, y0, x1, y1, color, size }) {
-      applyStroke(x0, y0, x1, y1, color, size, false);
+    // ── Socket listeners ──────────────────────────────────
+    function onDrawBatch(events) {
+      events.forEach(({ x0, y0, x1, y1, color, size }) => applyStroke(x0, y0, x1, y1, color, size, false));
     }
-    function onDrawShape({ type, x0, y0, x1, y1, color, size }) {
-      applyShape(type, x0, y0, x1, y1, color, size);
-    }
-    function onDrawFill({ x, y, color }) {
-      floodFill(ctx, canvas, x, y, color);
-    }
-    function doClear() {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      history.current = [];
-    }
-
-    function onCanvasCleared()         { doClear(); }
-    function onDrawingStarted()        { doClear(); }
+    function onDrawShape({ type, x0, y0, x1, y1, color, size }) { applyShape(type, x0, y0, x1, y1, color, size); }
+    function onDrawFill({ x, y, color }) { floodFill(ctx, canvas, x, y, color); }
+    function onCanvasCleared()  { doClear(); }
+    function onDrawingStarted() { doClear(); }
     function onCanvasRestore({ imageData }) { applyImageData(ctx, canvas, imageData); }
     function onSyncRequest({ forSocket }) {
       if (!isDrawer) return;
       socket.emit("canvas-sync", { imageData: canvas.toDataURL("image/jpeg", 0.85), forSocket });
     }
 
-    socket.on("draw-update",          onDrawUpdate);
-    socket.on("draw-shape",           onDrawShape);
-    socket.on("draw-fill",            onDrawFill);
-    socket.on("canvas-cleared",       onCanvasCleared);
-    socket.on("drawing-started",      onDrawingStarted);
-    socket.on("canvas-restore",       onCanvasRestore);
-    socket.on("sync-canvas-request",  onSyncRequest);
+    socket.on("draw-batch",          onDrawBatch);
+    socket.on("draw-shape",          onDrawShape);
+    socket.on("draw-fill",           onDrawFill);
+    socket.on("canvas-cleared",      onCanvasCleared);
+    socket.on("drawing-started",     onDrawingStarted);
+    socket.on("canvas-restore",      onCanvasRestore);
+    socket.on("sync-canvas-request", onSyncRequest);
 
-    // Fill white on mount
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Expose for toolbar
-    window.__lmnUndo = undo;
-    window.__lmnCanvasClear = doClear;
+    // Expose undo/clear — visibility-checked so only the active canvas responds
+    window.__lmnUndo         = () => { if (isVisible()) undo(); };
+    window.__lmnCanvasClear  = () => { if (isVisible()) doClear(); };
 
     return () => {
       canvas.removeEventListener("mousedown",  onDown);
@@ -262,18 +257,17 @@ export default function Canvas({ isDrawer }) {
       canvas.removeEventListener("touchstart", onDown);
       canvas.removeEventListener("touchmove",  onMove);
       canvas.removeEventListener("touchend",   onUp);
-      window.removeEventListener("keydown", onKeyDown);
-      socket.off("draw-update",         onDrawUpdate);
-      socket.off("draw-shape",          onDrawShape);
-      socket.off("draw-fill",           onDrawFill);
-      socket.off("canvas-cleared",      onCanvasCleared);
-      socket.off("drawing-started",     onDrawingStarted);
-      socket.off("canvas-restore",      onCanvasRestore);
-      socket.off("sync-canvas-request", onSyncRequest);
+      window.removeEventListener("keydown",    onKeyDown);
+      socket.off("draw-batch",         onDrawBatch);
+      socket.off("draw-shape",         onDrawShape);
+      socket.off("draw-fill",          onDrawFill);
+      socket.off("canvas-cleared",     onCanvasCleared);
+      socket.off("drawing-started",    onDrawingStarted);
+      socket.off("canvas-restore",     onCanvasRestore);
+      socket.off("sync-canvas-request",onSyncRequest);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
     };
   }, [isDrawer]);
-
-  useEffect(() => { window.__lmnTool = toolRef.current; }, []);
 
   return (
     <canvas
