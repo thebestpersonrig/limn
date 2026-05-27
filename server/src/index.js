@@ -5,7 +5,8 @@ import cors from "cors";
 import { registerHandlers } from "./socket/handlers.js";
 
 const PORT = process.env.PORT ?? 3001;
-const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
+// Strip trailing slash — CORS origin must match exactly
+const CLIENT_URL = (process.env.CLIENT_URL ?? "http://localhost:5173").replace(/\/+$/, "");
 
 const app = express();
 app.use(cors({ origin: CLIENT_URL }));
