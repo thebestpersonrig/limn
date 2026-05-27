@@ -40,7 +40,8 @@ export function registerHandlers(io) {
       const room = rooms.get(roomCode?.toUpperCase());
       if (!room) return socket.emit("rejoin-failed");
       joinRoom(socket, room, name);
-      // Send current game state if mid-round
+      // Use a distinct event so it doesn't collide with normal join-room flow
+      socket.emit("rejoined", { code: room.code, roomState: room.getRoomState() });
       if (room.state === "drawing" || room.state === "choosing") {
         socket.emit("round-start", {
           round: room.round,

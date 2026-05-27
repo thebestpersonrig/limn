@@ -63,18 +63,18 @@ export default function App() {
 
     function doRejoin() { s.emit("rejoin", session); }
 
-    function onJoinedRoom({ code, roomState }) {
+    function onRejoined({ code, roomState }) {
       setSessionData({ code, roomState, playerName: session.name });
       setScreen("lobby");
       // If game is in progress the server also fires "round-start",
       // which the global listener above will catch and navigate to game.
     }
 
-    s.once("joined-room", onJoinedRoom);
+    s.once("rejoined", onRejoined);
     if (s.connected) { doRejoin(); }
     else { s.connect(); s.once("connect", doRejoin); }
 
-    return () => { s.off("joined-room", onJoinedRoom); };
+    return () => { s.off("rejoined", onRejoined); };
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────

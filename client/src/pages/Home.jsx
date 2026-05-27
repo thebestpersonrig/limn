@@ -3,10 +3,11 @@ import { getSocket } from "../hooks/useSocket";
 import "./Home.css";
 
 export default function Home({ onJoined }) {
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [mode, setMode] = useState(null); // "create" | "join"
-  const [error, setError] = useState("");
+  const [name,    setName]    = useState("");
+  const [code,    setCode]    = useState("");
+  const [mode,    setMode]    = useState(null); // "create" | "join"
+  const [error,   setError]   = useState("");
+  const [pending, setPending] = useState(false);
 
   // Pre-fill code if URL has #join/CODE (shareable link)
   useEffect(() => {
@@ -30,13 +31,15 @@ export default function Home({ onJoined }) {
   function handleCreate() {
     if (!name.trim()) return setError("Enter your name first.");
     setError("");
+    setPending(true);
     connect(() => {
       const socket = getSocket();
       socket.emit("create-room", { name: name.trim() });
       socket.once("joined-room", ({ code, roomState }) => {
+        setPending(false);
         onJoined({ code, roomState, playerName: name.trim() });
       });
-      socket.once("error", ({ message }) => setError(message));
+      socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
@@ -44,13 +47,15 @@ export default function Home({ onJoined }) {
     if (!name.trim()) return setError("Enter your name first.");
     if (!code.trim()) return setError("Enter a room code.");
     setError("");
+    setPending(true);
     connect(() => {
       const socket = getSocket();
       socket.emit("join-room", { name: name.trim(), code: code.trim() });
       socket.once("joined-room", ({ code, roomState }) => {
+        setPending(false);
         onJoined({ code, roomState, playerName: name.trim() });
       });
-      socket.once("error", ({ message }) => setError(message));
+      socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
