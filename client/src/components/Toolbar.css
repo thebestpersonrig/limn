@@ -1,0 +1,95 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+  padding: 0;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.selected {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #6c63ff;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: #2a2a3a;
+  margin: 0 4px;
+}
+
+.toolbar-sizes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.size-btn {
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  padding: 0;
+}
+
+.size-btn.selected {
+  border-color: #6c63ff;
+}
+
+.tool-btn {
+  background: #2a2a3a;
+  color: #aaa;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tool-btn:hover {
+  background: #3a3a4a;
+  color: #ddd;
+}
+
+.tool-btn.active {
+  background: #6c63ff;
+  color: #fff;
+}
+
+.tool-btn.danger:hover {
+  background: #ff4444;
+  color: #fff;
+}
