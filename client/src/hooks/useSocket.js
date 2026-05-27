@@ -1,6 +1,10 @@
 import { io } from "socket.io-client";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "http://localhost:3001";
+let SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "http://localhost:3001";
+// Ensure protocol is present (common env-var typo)
+if (SERVER_URL && !/^https?:\/\//.test(SERVER_URL)) {
+  SERVER_URL = `https://${SERVER_URL}`;
+}
 
 let socket = null;
 
