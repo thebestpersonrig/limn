@@ -1,67 +1,90 @@
-export const words = [
-  // Simple shapes & symbols
-  "heart", "star", "arrow", "spiral", "circle", "smiley face", "sad face",
-  "lightning bolt", "rainbow", "question mark", "exclamation mark", "cross",
-  "diamond", "crown", "skull", "eye", "thumbs up", "peace sign",
+export const wordsByDifficulty = {
+  easy: [
+    // Shapes & symbols
+    "heart", "star", "circle", "arrow", "smiley face", "sad face", "eye",
+    "thumbs up", "peace sign", "cross", "skull",
 
-  // Sky & weather (clear silhouettes)
-  "sun", "moon", "cloud", "rain", "snowflake", "snowman", "rainbow",
-  "lightning", "shooting star", "crescent moon", "sunset",
+    // Weather & sky
+    "sun", "moon", "cloud", "rain", "snowflake", "snowman", "rainbow", "lightning",
 
-  // Nature (simple shapes)
-  "tree", "flower", "cactus", "mushroom", "leaf", "grass", "mountain",
-  "volcano", "wave", "island", "campfire", "snowman",
+    // Simple nature
+    "tree", "flower", "leaf", "grass", "wave", "mountain",
 
-  // Food (iconic shapes)
-  "pizza", "donut", "ice cream", "burger", "hot dog", "banana", "apple",
-  "watermelon", "cherry", "lollipop", "candy cane", "cake", "cupcake",
-  "egg", "bread", "pretzel", "taco", "popsicle", "fries",
+    // Simple food
+    "pizza", "donut", "apple", "banana", "egg", "bread", "ice cream", "lollipop",
+    "cake", "watermelon", "cherry",
 
-  // Simple animals (distinctive shape)
-  "fish", "snail", "butterfly", "spider", "crab", "jellyfish", "octopus",
-  "swan", "flamingo", "penguin", "duck", "cat", "dog", "rabbit", "snake",
-  "turtle", "frog", "bee", "ant", "worm", "starfish",
+    // Simple animals
+    "fish", "cat", "dog", "duck", "rabbit", "frog", "bee", "snake", "ant",
 
-  // Vehicles (clear side-view shape)
-  "car", "bus", "boat", "plane", "rocket", "bicycle", "submarine",
-  "hot air balloon", "helicopter", "train", "skateboard", "canoe",
-  "ambulance", "fire truck", "sailboat",
+    // Everyday objects
+    "car", "bus", "house", "door", "window", "cup", "plate", "spoon", "fork",
+    "knife", "bowl", "bottle", "bag", "shoe", "hat", "glasses", "book",
+    "phone", "ball", "balloon", "flag", "candle", "key", "clock", "pencil",
+    "chair", "table", "bed", "lamp", "umbrella", "ladder", "broom",
+    "mirror", "sock", "glove", "ring", "envelope", "coin",
+  ],
 
-  // Buildings & structures (simple outline)
-  "house", "castle", "igloo", "tent", "lighthouse", "bridge", "windmill",
-  "pyramid", "barn", "treehouse",
+  medium: [
+    // Symbols
+    "crown", "diamond", "lightning bolt", "shooting star", "crescent moon",
 
-  // Objects with unique shape
-  "umbrella", "key", "lock", "scissors", "hourglass", "magnifying glass",
-  "anchor", "compass", "ladder", "telescope", "trophy", "medal",
-  "kite", "balloon", "bowtie", "glasses", "crown", "hat", "boot",
-  "sock", "glove", "ring", "envelope", "flag", "lantern", "candle",
-  "clock", "alarm clock", "phone", "pencil", "ruler", "paintbrush",
-  "guitar", "drum", "trumpet", "microphone", "headphones",
-  "book", "newspaper", "camera", "lightbulb", "battery", "plug",
-  "magnet", "syringe", "thermometer", "comb", "toothbrush",
-  "hammer", "wrench", "saw", "nail", "screw",
-  "bucket", "broom", "mop", "trash can", "mirror",
-  "chair", "table", "bed", "door", "window", "stairs", "ladder",
-  "mailbox", "streetlight", "traffic light", "stop sign", "fence",
+    // Nature
+    "cactus", "mushroom", "volcano", "island", "campfire", "sunset",
 
-  // Stick figure actions (draw a stick figure doing it)
-  "sleeping", "running", "jumping", "swimming", "surfing", "skiing",
-  "dancing", "eating", "reading", "fishing", "climbing", "falling",
-  "flying", "sitting", "waving", "boxing", "yoga",
+    // Food
+    "burger", "hot dog", "taco", "fries", "pretzel", "cupcake", "popsicle",
+    "candy cane", "sushi",
 
-  // Fantasy / fun (iconic shapes)
-  "ghost", "alien", "robot", "wizard hat", "magic wand",
-  "dragon", "unicorn", "sword", "shield", "bomb", "cannon",
-  "spaceship", "ufo", "black hole",
+    // Animals
+    "butterfly", "penguin", "flamingo", "swan", "turtle", "crab", "snail",
 
-  // Misc (very visual)
-  "footprint", "handprint", "shadow", "explosion", "tornado",
-  "whirlpool", "target", "gift box", "treasure chest", "map",
-  "trophy", "podium", "finish line", "scoreboard",
-];
+    // Vehicles
+    "boat", "plane", "bicycle", "rocket", "sailboat", "submarine",
 
-export function getRandomWords(count = 3) {
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+    // Objects
+    "guitar", "drum", "trumpet", "microphone", "camera", "lightbulb",
+    "scissors", "hammer", "wrench", "anchor", "kite", "gift box",
+    "trophy", "medal", "sword", "shield", "bomb", "ghost", "robot", "alien",
+    "trash can", "bucket", "mailbox", "fence", "traffic light", "stop sign",
+    "bowtie", "boot", "toothbrush", "comb", "thermometer", "magnet",
+    "ruler", "paintbrush", "headphones", "lantern", "telescope",
+  ],
+
+  hard: [
+    // Symbols & concepts
+    "spiral", "hourglass", "compass", "target", "black hole",
+
+    // Nature
+    "tornado", "whirlpool", "glacier",
+
+    // Food
+    "croissant", "dumpling", "macaron",
+
+    // Animals
+    "octopus", "jellyfish", "starfish", "spider", "scorpion", "chameleon",
+
+    // Vehicles
+    "hot air balloon", "spaceship", "ufo",
+
+    // Fantasy
+    "dragon", "unicorn", "wizard hat", "magic wand", "spaceship",
+    "treasure chest", "cannon",
+
+    // Objects
+    "magnifying glass", "hourglass", "microscope", "binoculars",
+    "syringe", "compass", "abacus", "gramophone", "periscope",
+  ],
+};
+
+// Returns [easyWord, mediumWord, hardWord]
+export function getRandomWords() {
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  // Pick without repeating across the three
+  const easy = pick(wordsByDifficulty.easy);
+  const medium = pick(wordsByDifficulty.medium);
+  const hard = pick(wordsByDifficulty.hard);
+
+  return [easy, medium, hard];
 }
