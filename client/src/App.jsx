@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Hub from "./pages/Hub";
 import Home from "./pages/Home";
 import Lobby from "./pages/Lobby";
 import Game from "./pages/Game";
@@ -7,7 +8,7 @@ import { getSocket, saveSession, clearSession, getSession } from "./hooks/useSoc
 import "./App.css";
 
 export default function App() {
-  const [screen,       setScreen]       = useState("home");
+  const [screen,       setScreen]       = useState("hub");
   const [sessionData,  setSessionData]  = useState(null);
   const [roundData,    setRoundData]    = useState(null);
   const [finalPlayers, setFinalPlayers] = useState(null);
@@ -38,7 +39,7 @@ export default function App() {
         s.emit("rejoin", session);
       }
     }
-    function onRejoinFailed() { clearSession(); setScreen("home"); }
+    function onRejoinFailed() { clearSession(); setScreen("hub"); }
 
     s.on("round-start",    onRoundStart);
     s.on("game-end",       onGameEndEvent);
@@ -65,7 +66,7 @@ export default function App() {
 
     function onRejoined({ code, roomState }) {
       setSessionData({ code, roomState, playerName: session.name });
-      setScreen("lobby");
+      setScreen("lobby"); // skip hub on successful rejoin
       // If game is in progress the server also fires "round-start",
       // which the global listener above will catch and navigate to game.
     }
@@ -86,6 +87,20 @@ export default function App() {
     setScreen("lobby");
   }
 
+  function handleSelectGame(id) {
+    // id is e.g. "limn" — route to that game's home screen
+    if (id === "limn") setScreen("home");
+  }
+
+  function handleBackToHub() {
+    clearSession();
+    window.location.hash = "";
+    setScreen("hub");
+    setSessionData(null);
+    setRoundData(null);
+    setFinalPlayers(null);
+  }
+
   function handlePlayAgain() {
     clearSession();
     window.location.hash = "";
@@ -97,7 +112,8 @@ export default function App() {
 
   return (
     <>
-      {screen === "home"  && <Home onJoined={handleJoined} />}
+      {screen === "hub"   && <Hub onSelectGame={handleSelectGame} />}
+      {screen === "home"  && <Home onJoined={handleJoined} onBack={() => setScreen("hub")} />}
       {screen === "lobby" && sessionData && (
         <Lobby
           code={sessionData.code}
@@ -106,7 +122,7 @@ export default function App() {
         />
       )}
       {screen === "game"  && <Game initialRoundData={roundData} />}
-      {screen === "end"   && <GameEnd players={finalPlayers ?? []} onPlayAgain={handlePlayAgain} />}
+      {screen === "end"   && <GameEnd players={finalPlayers ?? []} onPlayAgain={handlePlayAgain} onBackToHub={handleBackToHub} />}
 
       {!connected && screen !== "home" && (
         <div className="disconnect-overlay">

@@ -123,7 +123,14 @@
 .ge-solo-name  { font-size: 22px; font-weight: 700; color: #fff; }
 .ge-solo-score { font-size: 18px; color: #6c63ff; font-weight: 700; margin-top: 4px; }
 
-/* ── Play Again ── */
+/* ── Actions ── */
+.ge-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .ge-play-again {
   width: 100%;
   padding: 14px;
@@ -138,6 +145,20 @@
 }
 .ge-play-again:hover  { opacity: 0.9; }
 .ge-play-again:active { transform: translateY(1px); }
+
+.ge-hub-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: #555;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ge-hub-btn:hover { color: #888; border-color: #3a3a4a; }
 
 @media (max-width: 480px) {
   .ge-card { padding: 28px 20px; }

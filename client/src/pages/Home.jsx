@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import "./Home.css";
 
-export default function Home({ onJoined }) {
+export default function Home({ onJoined, onBack }) {
   const [name,    setName]    = useState("");
   const [code,    setCode]    = useState("");
   const [mode,    setMode]    = useState(null); // "create" | "join"
@@ -62,6 +62,9 @@ export default function Home({ onJoined }) {
   return (
     <div className="home">
       <div className="home-card">
+        {onBack && (
+          <button className="home-back" onClick={onBack}>← Romp</button>
+        )}
         <h1 className="home-title">Limn</h1>
         <p className="home-subtitle">Draw. Guess. Win.</p>
 
@@ -91,13 +94,17 @@ export default function Home({ onJoined }) {
         <div className="home-buttons">
           {mode !== "join" ? (
             <>
-              <button className="btn btn-primary" onClick={handleCreate}>Create Room</button>
-              <button className="btn btn-secondary" onClick={() => setMode("join")}>Join Room</button>
+              <button className="btn btn-primary" onClick={handleCreate} disabled={pending}>
+                {pending ? "Creating…" : "Create Room"}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setMode("join")} disabled={pending}>Join Room</button>
             </>
           ) : (
             <>
-              <button className="btn btn-primary" onClick={handleJoin}>Join</button>
-              <button className="btn btn-ghost" onClick={() => { setMode(null); setCode(""); }}>Back</button>
+              <button className="btn btn-primary" onClick={handleJoin} disabled={pending}>
+                {pending ? "Joining…" : "Join"}
+              </button>
+              <button className="btn btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>Back</button>
             </>
           )}
         </div>

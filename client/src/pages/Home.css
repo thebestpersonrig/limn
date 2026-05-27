@@ -6,6 +6,19 @@
   background: #0f0f13;
 }
 
+.home-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+  transition: color 0.15s;
+}
+.home-back:hover { color: #888; }
+
 .home-card {
   background: #1a1a24;
   border: 1px solid #2a2a3a;
@@ -93,6 +106,12 @@
 
 .btn:active {
   transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-primary {

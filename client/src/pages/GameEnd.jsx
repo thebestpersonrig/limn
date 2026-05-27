@@ -3,7 +3,7 @@ import "./GameEnd.css";
 const RANK_COLORS = ["#fbbf24", "#9ca3af", "#d97706"];
 const PODIUM_HEIGHTS = [90, 120, 70]; // 2nd, 1st, 3rd
 
-export default function GameEnd({ players, onPlayAgain }) {
+export default function GameEnd({ players, onPlayAgain, onBackToHub }) {
   const sorted = [...players].sort((a, b) => b.score - a.score);
   const top3   = sorted.slice(0, 3);
   const rest   = sorted.slice(3);
@@ -55,9 +55,10 @@ export default function GameEnd({ players, onPlayAgain }) {
           </div>
         )}
 
-        <button className="ge-play-again" onClick={onPlayAgain}>
-          Play Again
-        </button>
+        <div className="ge-actions">
+          <button className="ge-play-again" onClick={onPlayAgain}>Play Again</button>
+          <button className="ge-hub-btn" onClick={onBackToHub}>All Games</button>
+        </div>
       </div>
     </div>
   );
