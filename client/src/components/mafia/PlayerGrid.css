@@ -1,0 +1,79 @@
+.pgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.pgrid-tile {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.2s;
+  user-select: none;
+}
+
+.pgrid-tile.dead {
+  opacity: 0.4;
+}
+
+.pgrid-tile.votable {
+  cursor: pointer;
+  border-color: #333;
+}
+.pgrid-tile.votable:hover {
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+.pgrid-tile.voted-by-me {
+  border-color: #dc2626;
+  background: #1c0a0a;
+}
+
+.pgrid-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2a2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+.pgrid-avatar[data-dead="true"] {
+  background: #1a1a1a;
+  font-size: 20px;
+}
+
+.pgrid-name {
+  font-size: 12px;
+  color: #ccc;
+  font-weight: 500;
+  text-align: center;
+  word-break: break-word;
+}
+.pgrid-name.is-me { color: #fff; font-weight: 700; }
+
+.pgrid-role-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pgrid-vote-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #1c0a0a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}

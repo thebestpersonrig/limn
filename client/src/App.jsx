@@ -4,6 +4,10 @@ import Home from "./pages/Home";
 import Lobby from "./pages/Lobby";
 import Game from "./pages/Game";
 import GameEnd from "./pages/GameEnd";
+import MafiaHome from "./pages/MafiaHome";
+import MafiaLobby from "./pages/MafiaLobby";
+import MafiaGame from "./pages/MafiaGame";
+import MafiaEnd from "./pages/MafiaEnd";
 import { getSocket, saveSession, clearSession, getSession, getSavedName, savePlayerName } from "./hooks/useSocket";
 import "./App.css";
 
@@ -13,12 +17,13 @@ export default function App() {
   const [sessionData,  setSessionData]  = useState(null);
   const [roundData,    setRoundData]    = useState(null);
   const [finalPlayers, setFinalPlayers] = useState(null);
+  const [mafiaEnd,     setMafiaEnd]     = useState(null);
   const [connected,    setConnected]    = useState(true);
   const screenRef = useRef(screen);
 
   useEffect(() => { screenRef.current = screen; }, [screen]);
 
-  // ── Global socket wiring ─────────────────────────────────
+  // ── Global socket wiring (Limn) ──────────────────────────
   useEffect(() => {
     const s = getSocket();
 
@@ -35,7 +40,7 @@ export default function App() {
     function onReconnect()  {
       setConnected(true);
       const session = getSession();
-      if (session && !["hub", "home", "end"].includes(screenRef.current)) {
+      if (session && !["hub", "home", "end", "mafia-home", "mafia-end"].includes(screenRef.current)) {
         s.emit("rejoin", session);
       }
     }
@@ -52,6 +57,30 @@ export default function App() {
       s.off("disconnect",    onDisconnect);
       s.off("reconnect",     onReconnect);
       s.off("rejoin-failed", onRejoinFailed);
+    };
+  }, []);
+
+  // ── Global socket wiring (Mafia) ─────────────────────────
+  useEffect(() => {
+    const s = getSocket();
+
+    function onMafiaPhase({ phase }) {
+      // When roleReveal starts, switch to the game screen
+      if (phase === "roleReveal" && screenRef.current === "mafia-lobby") {
+        setScreen("mafia-game");
+      }
+    }
+    function onMafiaGameEnd({ winner, players }) {
+      setMafiaEnd({ winner, players });
+      setScreen("mafia-end");
+      clearSession();
+    }
+
+    s.on("mafia-phase",    onMafiaPhase);
+    s.on("mafia-game-end", onMafiaGameEnd);
+    return () => {
+      s.off("mafia-phase",    onMafiaPhase);
+      s.off("mafia-game-end", onMafiaGameEnd);
     };
   }, []);
 
@@ -81,15 +110,22 @@ export default function App() {
   }
 
   function handleSelectGame(id) {
-    if (id === "limn") setScreen("home");
+    if (id === "limn")  setScreen("home");
+    if (id === "mafia") setScreen("mafia-home");
   }
 
-  // playerName comes from platform state — Home no longer asks for it
   function handleJoined({ code, roomState }) {
     setSessionData({ code, roomState, playerName });
     saveSession(playerName, code);
     window.location.hash = `join/${code}`;
     setScreen("lobby");
+  }
+
+  function handleMafiaJoined({ code, roomState }) {
+    setSessionData({ code, roomState, playerName });
+    saveSession(playerName, code);
+    window.location.hash = `join/mafia/${code}`;
+    setScreen("mafia-lobby");
   }
 
   function handleBackToHub() {
@@ -99,6 +135,7 @@ export default function App() {
     setSessionData(null);
     setRoundData(null);
     setFinalPlayers(null);
+    setMafiaEnd(null);
   }
 
   function handlePlayAgain() {
@@ -110,15 +147,25 @@ export default function App() {
     setFinalPlayers(null);
   }
 
+  function handleMafiaPlayAgain() {
+    clearSession();
+    window.location.hash = "";
+    setScreen("mafia-home");
+    setSessionData(null);
+    setMafiaEnd(null);
+  }
+
   return (
     <>
-      {screen === "hub"  && (
+      {screen === "hub" && (
         <Hub
           playerName={playerName}
           onNameChange={handleNameChange}
           onSelectGame={handleSelectGame}
         />
       )}
+
+      {/* ── Limn ── */}
       {screen === "home" && (
         <Home
           playerName={playerName}
@@ -134,7 +181,7 @@ export default function App() {
         />
       )}
       {screen === "game" && <Game initialRoundData={roundData} />}
-      {screen === "end"  && (
+      {screen === "end" && (
         <GameEnd
           players={finalPlayers ?? []}
           onPlayAgain={handlePlayAgain}
@@ -142,7 +189,32 @@ export default function App() {
         />
       )}
 
-      {!connected && screen !== "hub" && screen !== "home" && (
+      {/* ── Mafia ── */}
+      {screen === "mafia-home" && (
+        <MafiaHome
+          playerName={playerName}
+          onJoined={handleMafiaJoined}
+          onBack={() => setScreen("hub")}
+        />
+      )}
+      {screen === "mafia-lobby" && sessionData && (
+        <MafiaLobby
+          code={sessionData.code}
+          roomState={sessionData.roomState}
+          playerName={sessionData.playerName}
+        />
+      )}
+      {screen === "mafia-game" && <MafiaGame />}
+      {screen === "mafia-end" && mafiaEnd && (
+        <MafiaEnd
+          winner={mafiaEnd.winner}
+          players={mafiaEnd.players}
+          onPlayAgain={handleMafiaPlayAgain}
+          onBackToHub={handleBackToHub}
+        />
+      )}
+
+      {!connected && !["hub", "home", "mafia-home"].includes(screen) && (
         <div className="disconnect-overlay">
           <div className="disconnect-box">
             <div className="disconnect-spinner" />

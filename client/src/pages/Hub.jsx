@@ -33,14 +33,14 @@ const GAMES = [
     available: false,
   },
   {
-    id: "heist",
-    name: "Heist",
+    id: "mafia",
+    name: "Mafia",
     tagline: "Social Deduction",
-    description: "Someone in the room is the impostor. Vote smart. Trust no one.",
+    description: "The Mafia hides among you. Discuss, accuse, and vote before night falls.",
     players: "4 – 12 players",
-    emoji: "🎭",
-    color: "#ef4444",
-    available: false,
+    emoji: "🔪",
+    color: "#dc2626",
+    available: true,
   },
 ];
 

@@ -1,0 +1,203 @@
+.mafia-home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f13;
+}
+
+.mafia-home-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.mafia-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+  transition: color 0.15s;
+}
+.mafia-back:hover { color: #888; }
+
+.mafia-title {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: #fff;
+  margin: 0;
+  font-family: 'Georgia', serif;
+}
+
+.mafia-subtitle {
+  color: #555;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.mafia-playing-as {
+  font-size: 13px;
+  color: #555;
+}
+.mafia-playing-as strong {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.mafia-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ── Config panel ──────────────────────── */
+.mafia-config {
+  width: 100%;
+  background: #13131b;
+  border: 1px solid #22222e;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mafia-config-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555;
+  margin: 0;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.config-label {
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.config-toggle-group {
+  display: flex;
+  gap: 6px;
+}
+
+.config-option {
+  width: 36px;
+  height: 32px;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  background: transparent;
+  color: #777;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.config-option.active {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.config-toggle {
+  padding: 6px 14px;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  background: transparent;
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 50px;
+}
+.config-toggle.on {
+  background: #166534;
+  border-color: #166534;
+  color: #4ade80;
+}
+
+.config-min {
+  font-size: 12px;
+  color: #444;
+  text-align: center;
+  padding-top: 4px;
+  border-top: 1px solid #22222e;
+}
+
+/* ── Input ──────────────────────────────── */
+.mafia-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 700;
+}
+.mafia-input:focus { border-color: #dc2626; }
+.mafia-input::placeholder { color: #444; letter-spacing: 0; font-weight: 400; }
+
+/* ── Buttons ────────────────────────────── */
+.mafia-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.mbtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.mbtn:active { transform: scale(0.98); }
+.mbtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.mbtn-primary { background: #dc2626; color: #fff; }
+.mbtn-primary:hover:not(:disabled) { opacity: 0.9; }
+
+.mbtn-secondary { background: #2a2a3a; color: #ccc; }
+.mbtn-secondary:hover:not(:disabled) { background: #333348; }
+
+.mbtn-ghost { background: transparent; color: #555; font-size: 13px; }
+.mbtn-ghost:hover:not(:disabled) { color: #888; }
+
+@media (max-width: 480px) {
+  .mafia-home-card { padding: 36px 24px; }
+  .mafia-title { font-size: 40px; }
+}

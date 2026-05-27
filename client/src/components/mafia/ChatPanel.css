@@ -1,0 +1,110 @@
+.cpanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cpanel--mafia {
+  border-color: #450a0a;
+  background: #160808;
+}
+
+.cpanel-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid #2a2a3a;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #555;
+  flex-shrink: 0;
+}
+.cpanel--mafia .cpanel-header {
+  border-color: #450a0a;
+  color: #dc2626;
+}
+
+.cpanel-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.cpanel-msg {
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.cpanel-msg--system {
+  color: #555;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.cpanel-msg-name {
+  font-weight: 600;
+  color: #9d97ff;
+  margin-right: 6px;
+}
+.cpanel--mafia .cpanel-msg-name {
+  color: #f87171;
+}
+
+.cpanel-msg-text {
+  color: #ccc;
+}
+.cpanel-msg--system .cpanel-msg-text {
+  color: #555;
+}
+
+.cpanel-empty {
+  color: #333;
+  font-size: 12px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.cpanel-input-row {
+  display: flex;
+  border-top: 1px solid #2a2a3a;
+  flex-shrink: 0;
+}
+.cpanel--mafia .cpanel-input-row {
+  border-color: #450a0a;
+}
+
+.cpanel-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: #ddd;
+  font-size: 14px;
+  outline: none;
+}
+.cpanel-input::placeholder { color: #444; }
+.cpanel-input:disabled { opacity: 0.4; }
+
+.cpanel-send {
+  background: transparent;
+  border: none;
+  color: #6c63ff;
+  font-size: 18px;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.cpanel--mafia .cpanel-send { color: #dc2626; }
+.cpanel-send:hover:not(:disabled) { color: #9d97ff; }
+.cpanel-send:disabled { opacity: 0.3; cursor: not-allowed; }

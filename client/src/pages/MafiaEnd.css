@@ -1,0 +1,111 @@
+.mend {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f13;
+  padding: 20px;
+}
+
+.mend-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 20px;
+  width: 440px;
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Banner ── */
+.mend-banner {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.mend-banner.mafia { background: linear-gradient(180deg, #450a0a 0%, #1a1a24 100%); }
+.mend-banner.town  { background: linear-gradient(180deg, #052e16 0%, #1a1a24 100%); }
+
+.mend-banner-icon { font-size: 44px; }
+.mend-banner-text {
+  font-family: 'Georgia', serif;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+.mend-banner.mafia .mend-banner-text { color: #fca5a5; }
+.mend-banner.town  .mend-banner-text { color: #86efac; }
+
+/* ── Player list ── */
+.mend-player-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mend-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #0f0f13;
+  border-radius: 10px;
+}
+.mend-player.dead { opacity: 0.5; }
+
+.mend-player-name {
+  flex: 1;
+  font-size: 14px;
+  color: #ddd;
+  font-weight: 500;
+}
+
+.mend-player-role {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mend-player-status {
+  font-size: 11px;
+  color: #555;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* ── Actions ── */
+.mend-actions {
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mend-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.mend-btn-primary {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+}
+.mend-btn-primary:hover { opacity: 0.9; }
+
+.mend-btn-ghost {
+  background: transparent;
+  color: #555;
+  border: 1px solid #2a2a3a;
+}
+.mend-btn-ghost:hover { color: #888; border-color: #3a3a4a; }

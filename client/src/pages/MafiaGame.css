@@ -1,0 +1,151 @@
+.mgame {
+  min-height: 100vh;
+  background: #0f0f13;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.5s;
+}
+
+.mgame--night {
+  background: #080810;
+}
+
+/* ── Header ── */
+.mgame-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #1a1a24;
+  flex-shrink: 0;
+}
+
+.mgame-logo {
+  font-family: 'Georgia', serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.mgame-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.mgame-day {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+}
+
+.mgame-phase-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #1a1a24;
+  color: #888;
+}
+.phase-day, .phase-vote { background: #172554; color: #93c5fd; }
+.phase-night, .phase-nightResult { background: #1c1c2e; color: #a78bfa; }
+.phase-elimResult { background: #450a0a; color: #fca5a5; }
+.phase-roleReveal { background: #1c1c2e; color: #facc15; }
+
+.mgame-timer {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #facc15;
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ── Body layout ── */
+.mgame-body {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mgame-players {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.mgame-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Night split (mafia chat + action) ── */
+.mgame-night-split {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.mgame-night-split .cpanel { flex: 1; }
+
+/* ── Result overlays ── */
+.mgame-result-overlay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.mgame-result-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.mgame-result-text {
+  font-size: 18px;
+  color: #ccc;
+  margin: 0;
+}
+.mgame-result-text strong {
+  color: #fff;
+}
+
+.mgame-result-role {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+.mgame-result-role strong {
+  color: #dc2626;
+}
+
+/* ── Mobile ── */
+@media (max-width: 700px) {
+  .mgame-body {
+    flex-direction: column;
+    padding: 12px;
+  }
+  .mgame-players {
+    width: 100%;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .mgame-panel { flex: 1; min-height: 0; }
+  .mgame-header { padding: 10px 14px; gap: 10px; }
+  .mgame-logo { font-size: 18px; }
+}
