@@ -42,15 +42,17 @@
 }
 
 .game-role-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 20px;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .game-role-badge.role-draw {
   background: rgba(108, 99, 255, 0.15);
-  color: #9d97ff;
+  color: #a8a3ff;
   border: 1px solid rgba(108, 99, 255, 0.3);
 }
 .game-role-badge.role-guess {
@@ -146,51 +148,61 @@
 }
 
 .word-choice-btn {
-  background: #1a1a24;
-  border: 2px solid #6c63ff;
-  color: #fff;
-  font-size: 16px;
+  background: #12121a;
+  border: 1.5px solid #6c63ff44;
+  color: #ddd;
+  font-size: 15px;
   font-weight: 600;
-  padding: 12px 22px;
+  padding: 12px 24px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
   touch-action: manipulation;
 }
 .word-choice-btn:hover,
 .word-choice-btn:active {
-  background: #6c63ff;
+  background: rgba(108, 99, 255, 0.18);
+  border-color: #6c63ff;
+  color: #fff;
   transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.25);
 }
 
 .round-end-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(15, 15, 19, 0.92);
+  background: rgba(10, 10, 16, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  backdrop-filter: blur(6px);
+  gap: 10px;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .round-end-label {
-  color: #888;
-  font-size: 13px;
+  color: #666;
+  font-size: 11px;
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 }
 .round-end-word {
   color: #fff;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 .round-end-sub {
-  color: #555;
-  font-size: 13px;
-  margin: 4px 0 0;
+  color: #444;
+  font-size: 12px;
+  margin: 6px 0 0;
+  letter-spacing: 0.5px;
 }
 
 /* ── Mobile layout (hidden on desktop) ─ */

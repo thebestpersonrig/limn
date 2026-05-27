@@ -60,12 +60,23 @@
 }
 
 .plist-tag {
-  font-size: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.plist-tag.draw {
+  background: rgba(108, 99, 255, 0.15);
+  color: #a8a3ff;
 }
 
 .plist-tag.ok {
+  background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
-  font-weight: 700;
 }
 
 .plist-score {

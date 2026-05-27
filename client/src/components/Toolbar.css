@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   background: #1a1a24;
   border: 1px solid #2a2a3a;
   border-radius: 10px;
@@ -10,75 +10,131 @@
   flex-shrink: 0;
 }
 
+/* ── Colors ── */
 .toolbar-colors {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  align-items: center;
 }
 
 .color-swatch {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.1s;
   padding: 0;
   outline: none;
   box-sizing: border-box;
   touch-action: manipulation;
+  border: 2px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
 }
-.color-swatch:hover { transform: scale(1.15); }
+.color-swatch:hover { transform: scale(1.2); }
 .color-swatch.selected {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #6c63ff;
+  box-shadow: 0 0 0 2px #6c63ff;
+  transform: scale(1.1);
 }
 
+/* white swatch needs a visible border so it's not invisible */
+.color-swatch[style*="#ffffff"],
+.color-swatch[style*="rgb(255, 255, 255)"] {
+  border-color: #3a3a4a;
+}
+
+/* ── Dividers ── */
 .toolbar-divider {
   width: 1px;
   height: 28px;
   background: #2a2a3a;
-  margin: 0 4px;
+  margin: 0 2px;
   flex-shrink: 0;
 }
 
+.toolbar-divider-v {
+  width: 1px;
+  height: 24px;
+  background: #2a2a3a;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* ── Tool icon buttons ── */
+.toolbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tool-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  padding: 0;
+  touch-action: manipulation;
+  flex-shrink: 0;
+}
+.tool-icon-btn:hover {
+  background: #252530;
+  border-color: #3a3a4a;
+  color: #ccc;
+}
+.tool-icon-btn.active {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: #6c63ff;
+  color: #a8a3ff;
+}
+.clear-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+/* ── Sizes ── */
 .toolbar-sizes {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .size-btn {
-  background: #0f0f13;
-  border: 1px solid #2a2a3a;
-  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
   width: 34px;
   height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: background 0.12s, border-color 0.12s;
   padding: 0;
   touch-action: manipulation;
+  flex-shrink: 0;
 }
-.size-btn.selected { border-color: #6c63ff; }
+.size-btn:hover {
+  background: #252530;
+  border-color: #3a3a4a;
+}
+.size-btn.selected {
+  background: rgba(108, 99, 255, 0.1);
+  border-color: #6c63ff44;
+}
 
-.tool-btn {
-  background: #2a2a3a;
-  color: #aaa;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: background 0.15s, color 0.15s;
-  touch-action: manipulation;
+.size-dot {
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
 }
-.tool-btn:hover  { background: #3a3a4a; color: #ddd; }
-.tool-btn.active { background: #6c63ff; color: #fff; }
-.tool-btn.danger:hover { background: #ff4444; color: #fff; }
 
 /* ── Mobile: single scrollable row ── */
 @media (max-width: 768px) {
@@ -88,16 +144,12 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 6px 10px;
     gap: 6px;
   }
   .toolbar::-webkit-scrollbar { display: none; }
-
   .toolbar-colors { flex-wrap: nowrap; }
-
-  .color-swatch { width: 28px; height: 28px; }
-
+  .color-swatch { width: 26px; height: 26px; }
+  .tool-icon-btn { width: 36px; height: 36px; }
   .size-btn { width: 38px; height: 38px; }
-
-  .tool-btn { padding: 8px 14px; font-size: 13px; white-space: nowrap; }
 }

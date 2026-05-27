@@ -51,6 +51,13 @@ export function registerHandlers(io) {
       }
     });
 
+    socket.on("draw-shape", (data) => {
+      const room = rooms.get(currentRoomCode);
+      if (room && socket.id === room.currentDrawerId) {
+        socket.to(currentRoomCode).emit("draw-shape", data);
+      }
+    });
+
     socket.on("clear-canvas", () => {
       const room = rooms.get(currentRoomCode);
       if (room && socket.id === room.currentDrawerId) {

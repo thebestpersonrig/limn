@@ -10,8 +10,8 @@ export default function PlayerList({ players, drawerId }) {
         <div key={p.id} className={`plist-row ${p.isDrawing ? "drawing" : ""} ${p.hasGuessedCorrectly ? "guessed" : ""}`}>
           <span className="plist-avatar">{p.name[0].toUpperCase()}</span>
           <span className="plist-name">{p.name}</span>
-          {p.isDrawing && <span className="plist-tag draw">✏️</span>}
-          {p.hasGuessedCorrectly && !p.isDrawing && <span className="plist-tag ok">✓</span>}
+          {p.isDrawing && <span className="plist-tag draw">drawing</span>}
+          {p.hasGuessedCorrectly && !p.isDrawing && <span className="plist-tag ok">got it</span>}
           <span className="plist-score">{p.score}</span>
         </div>
       ))}
