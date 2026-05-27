@@ -11,6 +11,15 @@
 .hub-header {
   text-align: center;
   margin-bottom: 56px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.hub-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .hub-logo {
@@ -29,6 +38,108 @@
   text-transform: uppercase;
   margin: 10px 0 0;
 }
+
+/* ── Name chip ────────────────────────────────────────── */
+.hub-name-chip {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 999px;
+  padding: 6px 12px 6px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.hub-name-chip:hover { border-color: #444; }
+
+.hub-name-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-name-edit {
+  font-size: 12px;
+  color: #555;
+}
+
+/* ── Name prompt overlay ─────────────────────────────── */
+.name-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 16, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.name-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 360px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.name-card-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Georgia', serif;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.name-card-sub {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.name-card-input {
+  padding: 12px 16px;
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-top: 4px;
+}
+.name-card-input:focus { border-color: #6c63ff; }
+.name-card-input::placeholder { color: #444; }
+
+.name-card-btn {
+  padding: 13px;
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+.name-card-btn:hover:not(:disabled) { opacity: 0.88; }
+.name-card-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Grid ────────────────────────────────────────────── */
 .hub-grid {

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import "./Home.css";
 
-export default function Home({ onJoined, onBack }) {
-  const [name,    setName]    = useState("");
+export default function Home({ playerName, onJoined, onBack }) {
   const [code,    setCode]    = useState("");
   const [mode,    setMode]    = useState(null); // "create" | "join"
   const [error,   setError]   = useState("");
@@ -29,31 +28,29 @@ export default function Home({ onJoined, onBack }) {
   }
 
   function handleCreate() {
-    if (!name.trim()) return setError("Enter your name first.");
     setError("");
     setPending(true);
     connect(() => {
       const socket = getSocket();
-      socket.emit("create-room", { name: name.trim() });
+      socket.emit("create-room", { name: playerName });
       socket.once("joined-room", ({ code, roomState }) => {
         setPending(false);
-        onJoined({ code, roomState, playerName: name.trim() });
+        onJoined({ code, roomState });
       });
       socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
   function handleJoin() {
-    if (!name.trim()) return setError("Enter your name first.");
     if (!code.trim()) return setError("Enter a room code.");
     setError("");
     setPending(true);
     connect(() => {
       const socket = getSocket();
-      socket.emit("join-room", { name: name.trim(), code: code.trim() });
+      socket.emit("join-room", { name: playerName, code: code.trim() });
       socket.once("joined-room", ({ code, roomState }) => {
         setPending(false);
-        onJoined({ code, roomState, playerName: name.trim() });
+        onJoined({ code, roomState });
       });
       socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
@@ -68,14 +65,9 @@ export default function Home({ onJoined, onBack }) {
         <h1 className="home-title">Limn</h1>
         <p className="home-subtitle">Draw. Guess. Win.</p>
 
-        <input
-          className="home-input"
-          placeholder="Your name"
-          value={name}
-          maxLength={20}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && mode === "join" && handleJoin()}
-        />
+        <div className="home-playing-as">
+          Playing as <strong>{playerName}</strong>
+        </div>
 
         {mode === "join" && (
           <input
@@ -97,14 +89,18 @@ export default function Home({ onJoined, onBack }) {
               <button className="btn btn-primary" onClick={handleCreate} disabled={pending}>
                 {pending ? "Creating…" : "Create Room"}
               </button>
-              <button className="btn btn-secondary" onClick={() => setMode("join")} disabled={pending}>Join Room</button>
+              <button className="btn btn-secondary" onClick={() => setMode("join")} disabled={pending}>
+                Join Room
+              </button>
             </>
           ) : (
             <>
               <button className="btn btn-primary" onClick={handleJoin} disabled={pending}>
                 {pending ? "Joining…" : "Join"}
               </button>
-              <button className="btn btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>Back</button>
+              <button className="btn btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>
+                Back
+              </button>
             </>
           )}
         </div>

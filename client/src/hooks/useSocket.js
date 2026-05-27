@@ -17,9 +17,19 @@ export function getSocket() {
   return socket;
 }
 
+export function savePlayerName(name) {
+  localStorage.setItem("romp_player_name", name);
+}
+
+export function getSavedName() {
+  return localStorage.getItem("romp_player_name") ?? "";
+}
+
 export function saveSession(name, roomCode) {
+  savePlayerName(name);
   localStorage.setItem("limn_session", JSON.stringify({ name, roomCode }));
 }
+
 
 export function clearSession() {
   localStorage.removeItem("limn_session");
