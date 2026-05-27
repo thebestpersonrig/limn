@@ -13,8 +13,8 @@ export default function GuessPanel({ isDrawer, myId }) {
   const socket = getSocket();
 
   useEffect(() => {
-    function onGuessAttempt({ playerId, name, text, guessesLeft: left }) {
-      setEntries(prev => [...prev, { type: "attempt", name, text, correct: false }]);
+    function onGuessAttempt({ playerId, name, text, guessesLeft: left, close }) {
+      setEntries(prev => [...prev, { type: "attempt", name, text, close }]);
       if (playerId === myId) setGuessesLeft(left);
     }
 
@@ -83,7 +83,7 @@ export default function GuessPanel({ isDrawer, myId }) {
         {entries.map((e, i) => (
           <div key={i} className={`guess-entry guess-entry--${e.type}`}>
             {e.type === "attempt" && (
-              <><span className="guess-name">{e.name}: </span><span>{e.text}</span><span className="guess-x">✗</span></>
+              <><span className="guess-name">{e.name}: </span><span>{e.text}</span>{e.close ? <span className="guess-close">so close!</span> : <span className="guess-x">✗</span>}</>
             )}
             {e.type === "correct" && (
               <><span className="guess-correct-icon">✓</span><span>{e.name} guessed it!</span></>
