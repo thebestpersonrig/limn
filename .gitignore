@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 .env.local
+client/.env
+client/.env.local
+server/.env
+server/.env.local

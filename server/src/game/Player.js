@@ -1,3 +1,5 @@
+export const MAX_GUESSES = 5;
+
 export class Player {
   constructor(id, name) {
     this.id = id;
@@ -5,6 +7,11 @@ export class Player {
     this.score = 0;
     this.isDrawing = false;
     this.hasGuessedCorrectly = false;
+    this.guessesUsed = 0;
+  }
+
+  get guessesLeft() {
+    return MAX_GUESSES - this.guessesUsed;
   }
 
   toJSON() {
@@ -14,6 +21,8 @@ export class Player {
       score: this.score,
       isDrawing: this.isDrawing,
       hasGuessedCorrectly: this.hasGuessedCorrectly,
+      guessesUsed: this.guessesUsed,
+      guessesLeft: this.guessesLeft,
     };
   }
 }

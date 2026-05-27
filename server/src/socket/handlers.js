@@ -63,6 +63,11 @@ export function registerHandlers(io) {
       if (room) room.handleGuess(socket.id, text);
     });
 
+    socket.on("chat", ({ text }) => {
+      const room = rooms.get(currentRoomCode);
+      if (room) room.handleChat(socket.id, text);
+    });
+
     socket.on("disconnect", () => {
       const room = rooms.get(currentRoomCode);
       if (room) {

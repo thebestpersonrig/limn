@@ -1,23 +1,26 @@
 .game {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #0f0f13;
   color: #ddd;
+  overflow: hidden;
 }
 
+/* ── Header ─────────────────────────── */
 .game-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
+  gap: 12px;
+  padding: 10px 16px;
   background: #1a1a24;
   border-bottom: 1px solid #2a2a3a;
+  flex-shrink: 0;
 }
 
 .game-logo {
   font-family: 'Georgia', serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
@@ -27,45 +30,87 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.game-timer {
-  width: 180px;
+.game-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+.game-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.game-role-badge.role-draw {
+  background: rgba(108, 99, 255, 0.15);
+  color: #9d97ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+.game-role-badge.role-guess {
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.25);
 }
 
 .game-round {
-  font-size: 13px;
+  font-size: 12px;
   color: #555;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
-.game-body {
+/* ── Desktop 3-column layout ─────────── */
+.game-desktop {
   flex: 1;
   display: grid;
   grid-template-columns: 180px 1fr 260px;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   min-height: 0;
+  overflow: hidden;
+}
+
+.game-left,
+.game-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .game-center {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  min-height: 0;
 }
 
+/* ── Canvas wrap (shared styles) ─────── */
 .canvas-wrap {
   position: relative;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #2a2a3a;
   flex: 1;
+  min-height: 0;
 }
 
-/* Word choice overlay */
+.canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* ── Overlays ────────────────────────── */
 .word-choice-overlay {
   position: absolute;
   inset: 0;
@@ -76,37 +121,41 @@
   justify-content: center;
   gap: 20px;
   backdrop-filter: blur(4px);
+  padding: 20px;
 }
 
 .word-choice-label {
   color: #aaa;
   font-size: 15px;
   margin: 0;
+  text-align: center;
 }
 
 .word-choice-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .word-choice-btn {
   background: #1a1a24;
   border: 2px solid #6c63ff;
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  padding: 14px 28px;
+  padding: 12px 22px;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
+  touch-action: manipulation;
 }
-
-.word-choice-btn:hover {
+.word-choice-btn:hover,
+.word-choice-btn:active {
   background: #6c63ff;
   transform: translateY(-2px);
 }
 
-/* Round end overlay */
 .round-end-overlay {
   position: absolute;
   inset: 0;
@@ -115,28 +164,141 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   backdrop-filter: blur(6px);
 }
-
 .round-end-label {
   color: #888;
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 2px;
 }
-
 .round-end-word {
   color: #fff;
-  font-size: 40px;
+  font-size: 32px;
   font-weight: 800;
   margin: 0;
-  letter-spacing: 2px;
 }
-
 .round-end-sub {
   color: #555;
   font-size: 13px;
-  margin: 8px 0 0;
+  margin: 4px 0 0;
+}
+
+/* ── Mobile layout (hidden on desktop) ─ */
+.game-mobile {
+  display: none;
+}
+
+/* ══════════════════════════════════════
+   MOBILE  ≤ 768px
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Hide desktop layout */
+  .game-desktop { display: none; }
+
+  /* Show mobile layout */
+  .game-mobile {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Canvas area: fixed aspect ratio, never too tall */
+  .mobile-canvas-area {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding: 8px 8px 0;
+    gap: 6px;
+  }
+
+  .mobile-canvas-area .canvas-wrap {
+    flex: none;
+    aspect-ratio: 8 / 5;
+    height: auto;
+    max-height: 42dvh;
+  }
+
+  /* Compact header on mobile */
+  .game-header {
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .game-logo { font-size: 16px; }
+
+  .game-header-meta {
+    gap: 8px;
+  }
+
+  .game-role-badge { display: none; }
+
+  /* Tab bar */
+  .mobile-tab-bar {
+    display: flex;
+    flex-shrink: 0;
+    background: #1a1a24;
+    border-top: 1px solid #2a2a3a;
+    border-bottom: 1px solid #2a2a3a;
+    margin-top: 6px;
+  }
+
+  .mobile-tab {
+    flex: 1;
+    padding: 10px 6px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .mobile-tab.active {
+    color: #6c63ff;
+    border-bottom-color: #6c63ff;
+  }
+
+  /* Panel area fills remaining space */
+  .mobile-panel-area {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .mobile-panel {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    padding: 8px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .mobile-panel.active {
+    display: flex;
+  }
+
+  /* Make panels fill their mobile container */
+  .mobile-panel .player-list-panel {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .mobile-panel .guess-panel,
+  .mobile-panel .chat {
+    flex: 1;
+    min-height: 0;
+  }
 }

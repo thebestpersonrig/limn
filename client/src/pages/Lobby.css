@@ -12,6 +12,7 @@
   border-radius: 16px;
   padding: 40px;
   width: 380px;
+  max-width: calc(100vw - 32px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -26,20 +27,56 @@
   font-family: 'Georgia', serif;
 }
 
-.lobby-code {
-  color: #666;
-  font-size: 13px;
-  margin: 0;
+.lobby-code-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.lobby-code-label {
+  color: #555;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.lobby-code-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 8px 14px;
 }
 
 .code-badge {
-  background: #2a2a3a;
   color: #6c63ff;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  font-size: 20px;
+  font-family: monospace;
+}
+
+.copy-btn {
+  background: #2a2a3a;
+  color: #aaa;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: #6c63ff;
+  color: #fff;
 }
 
 .player-list {

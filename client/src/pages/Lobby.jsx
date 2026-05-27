@@ -5,6 +5,7 @@ import "./Lobby.css";
 export default function Lobby({ code, roomState, playerName, onGameStart }) {
   const [players, setPlayers] = useState(roomState?.players ?? []);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const socket = getSocket();
   const isHost = players[0]?.id === socket.id;
 
@@ -18,9 +19,6 @@ export default function Lobby({ code, roomState, playerName, onGameStart }) {
     function onPlayerLeft({ playerId }) {
       setPlayers(prev => prev.filter(p => p.id !== playerId));
     }
-    function onGameStarted(data) {
-      onGameStart(data);
-    }
     function onError({ message }) {
       setError(message);
     }
@@ -28,15 +26,13 @@ export default function Lobby({ code, roomState, playerName, onGameStart }) {
     socket.on("room-state", onRoomState);
     socket.on("player-joined", onPlayerJoined);
     socket.on("player-left", onPlayerLeft);
-    socket.on("game-started", onGameStarted);
-    socket.on("round-start", onGameStart); // server emits round-start as first game signal
+    socket.on("round-start", onGameStart);
     socket.on("error", onError);
 
     return () => {
       socket.off("room-state", onRoomState);
       socket.off("player-joined", onPlayerJoined);
       socket.off("player-left", onPlayerLeft);
-      socket.off("game-started", onGameStarted);
       socket.off("round-start", onGameStart);
       socket.off("error", onError);
     };
@@ -47,13 +43,27 @@ export default function Lobby({ code, roomState, playerName, onGameStart }) {
     socket.emit("start-game");
   }
 
+  function copyCode() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="lobby">
       <div className="lobby-card">
         <h2 className="lobby-title">Limn</h2>
-        <p className="lobby-code">
-          Room code: <span className="code-badge">{code}</span>
-        </p>
+
+        <div className="lobby-code-row">
+          <span className="lobby-code-label">Room code</span>
+          <div className="lobby-code-box">
+            <span className="code-badge">{code}</span>
+            <button className="copy-btn" onClick={copyCode}>
+              {copied ? "✓ Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
 
         <div className="player-list">
           {players.map((p, i) => (

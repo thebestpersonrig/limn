@@ -1,4 +1,5 @@
 import { getRandomWords } from "./wordList.js";
+import { MAX_GUESSES } from "./Player.js";
 
 const ROUND_DURATION = 80; // seconds
 const ROUNDS_PER_GAME = 3;
@@ -31,7 +32,7 @@ export class GameRoom {
     this.broadcast("player-left", { playerId: socketId, name: player.name });
 
     if (this.state !== "lobby" && socketId === this.currentDrawerId) {
-      this.endRound(true); // drawer left, skip round
+      this.endRound(true);
     }
 
     this.broadcast("room-state", this.getRoomState());
@@ -55,13 +56,12 @@ export class GameRoom {
       return this.endGame();
     }
 
-    // Cycle through drawer queue
     const drawerIndex = (this.round - 1) % this.drawerQueue.length;
     this.currentDrawerId = this.drawerQueue[drawerIndex];
 
-    // Reset guess flags
     for (const p of this.players.values()) {
       p.hasGuessedCorrectly = false;
+      p.guessesUsed = 0;
       p.isDrawing = p.id === this.currentDrawerId;
     }
 
@@ -69,17 +69,17 @@ export class GameRoom {
     this.currentWord = null;
     this.state = "choosing";
 
-    this.broadcast("round-start", {
+    const basePayload = {
       round: this.round,
       totalRounds: ROUNDS_PER_GAME * this.drawerQueue.length,
       drawerId: this.currentDrawerId,
       players: this.getPlayersArray(),
-    });
+    };
 
-    // Send word choices only to drawer
-    this.io.to(this.currentDrawerId).emit("choose-word", { words: this.wordChoices });
+    // Send word choices only to drawer, bundled in round-start so it arrives together
+    this.io.to(this.currentDrawerId).emit("round-start", { ...basePayload, wordChoices: this.wordChoices });
+    this.broadcastExcept(this.currentDrawerId, "round-start", basePayload);
 
-    // Auto-pick after 15s if drawer doesn't choose
     this.choiceTimer = setTimeout(() => {
       if (!this.currentWord) this.wordChosen(this.wordChoices[0]);
     }, 15000);
@@ -93,7 +93,6 @@ export class GameRoom {
 
     const hint = buildHint(word);
 
-    // Tell drawer the real word; everyone else gets the hint
     this.io.to(this.currentDrawerId).emit("word-for-drawer", { word });
     this.broadcastExcept(this.currentDrawerId, "word-hint", { hint, length: word.length });
     this.broadcast("drawing-started", { drawerId: this.currentDrawerId });
@@ -107,6 +106,9 @@ export class GameRoom {
 
     const player = this.players.get(socketId);
     if (!player || player.hasGuessedCorrectly) return;
+    if (player.guessesLeft <= 0) return;
+
+    player.guessesUsed++;
 
     const normalizedGuess = guess.trim().toLowerCase();
     const normalizedWord = this.currentWord.toLowerCase();
@@ -114,10 +116,8 @@ export class GameRoom {
     if (normalizedGuess === normalizedWord) {
       player.hasGuessedCorrectly = true;
       const timeBonus = Math.floor(this.timeLeft / ROUND_DURATION * 500);
-      const basePoints = 300;
-      player.score += basePoints + timeBonus;
+      player.score += 300 + timeBonus;
 
-      // Drawer earns points per correct guess
       const drawer = this.players.get(this.currentDrawerId);
       if (drawer) drawer.score += 50;
 
@@ -127,15 +127,27 @@ export class GameRoom {
         players: this.getPlayersArray(),
       });
 
-      // Check if everyone guessed
       const nonDrawers = [...this.players.values()].filter(p => !p.isDrawing);
       if (nonDrawers.every(p => p.hasGuessedCorrectly)) {
         this.endRound(false);
       }
     } else {
-      // Broadcast as a chat message (wrong guess visible to all)
-      this.broadcast("chat-message", { name: player.name, text: guess, playerId: socketId });
+      // Wrong guess — goes to the guess panel only, not chat
+      this.broadcast("guess-attempt", {
+        playerId: socketId,
+        name: player.name,
+        text: guess,
+        guessesLeft: player.guessesLeft,
+      });
     }
+  }
+
+  handleChat(socketId, text) {
+    // Drawer cannot chat
+    if (socketId === this.currentDrawerId) return;
+    const player = this.players.get(socketId);
+    if (!player || !text.trim()) return;
+    this.broadcast("chat-message", { name: player.name, text: text.trim(), playerId: socketId });
   }
 
   endRound(skipReveal = false) {
