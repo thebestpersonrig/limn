@@ -127,7 +127,7 @@ export class GameRoom {
       const nonDrawers = [...this.players.values()].filter(p => !p.isDrawing);
       if (nonDrawers.every(p => p.hasGuessedCorrectly)) this.endRound(false);
     } else {
-      const close = levenshtein(normalizedGuess, normalizedWord) === 1;
+      const close = levenshtein(guess.trim().toLowerCase(), this.currentWord.toLowerCase()) === 1;
       this.broadcast("guess-attempt", {
         playerId: socketId,
         name: player.name,

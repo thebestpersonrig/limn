@@ -25,7 +25,17 @@ export default function MafiaHome({ playerName, onJoined, onBack }) {
     const socket = getSocket();
     if (!socket.connected) {
       socket.connect();
-      socket.once("connect", cb);
+      socket.once("connect", () => {
+        socket.off("connect_error", onErr);
+        cb();
+      });
+      function onErr(err) {
+        socket.off("connect", cb);
+        setPending(false);
+        setError("Can't reach the server — try again in a moment.");
+        console.error("Socket connect error:", err.message);
+      }
+      socket.once("connect_error", onErr);
     } else {
       cb();
     }
