@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import Canvas from "../components/Canvas";
 import Toolbar from "../components/Toolbar";
-import Chat from "../components/Chat";
 import GuessPanel from "../components/GuessPanel";
 import PlayerList from "../components/PlayerList";
 import Timer from "../components/Timer";
@@ -90,11 +89,8 @@ export default function Game({ initialRoundData, onGameEnd }) {
     </>
   );
 
-  // These panels are rendered once; CSS places them on desktop,
-  // and the mobile tab system shows/hides them on small screens.
   const playerPanel = <PlayerList players={players} drawerId={roundData?.drawerId} />;
   const guessPanel = <GuessPanel isDrawer={isDrawer} myId={socket.id} />;
-  const chatPanel = <Chat isDrawer={isDrawer} />;
 
   return (
     <div className="game">
@@ -108,7 +104,7 @@ export default function Game({ initialRoundData, onGameEnd }) {
         <div className="game-header-meta">
           <Timer initial={80} />
           <span className={`game-role-badge ${isDrawer ? "role-draw" : "role-guess"}`}>
-            {isDrawer ? "✏️ Drawing" : "💬 Guessing"}
+            {isDrawer ? "✏️" : "💬"}
           </span>
           <span className="game-round">{roundData?.round ?? 1}/{roundData?.totalRounds ?? 3}</span>
         </div>
@@ -117,7 +113,6 @@ export default function Game({ initialRoundData, onGameEnd }) {
       {/* ── Desktop layout ── */}
       <div className="game-desktop">
         <aside className="game-left">{playerPanel}</aside>
-
         <div className="game-center">
           <div className="canvas-wrap">
             <Canvas isDrawer={isDrawer && phase === "drawing"} />
@@ -125,16 +120,11 @@ export default function Game({ initialRoundData, onGameEnd }) {
           </div>
           <Toolbar isDrawer={isDrawer && phase === "drawing"} />
         </div>
-
-        <aside className="game-right">
-          {guessPanel}
-          {chatPanel}
-        </aside>
+        <aside className="game-right">{guessPanel}</aside>
       </div>
 
       {/* ── Mobile layout ── */}
       <div className="game-mobile">
-        {/* Canvas always visible on mobile */}
         <div className="mobile-canvas-area">
           <div className="canvas-wrap">
             <Canvas isDrawer={isDrawer && phase === "drawing"} />
@@ -143,13 +133,8 @@ export default function Game({ initialRoundData, onGameEnd }) {
           <Toolbar isDrawer={isDrawer && phase === "drawing"} />
         </div>
 
-        {/* Tab bar */}
         <nav className="mobile-tab-bar">
-          {[
-            { id: "players", label: "Players" },
-            { id: "guess",   label: "Guess" },
-            { id: "chat",    label: "Chat" },
-          ].map(({ id, label }) => (
+          {[{ id: "players", label: "Players" }, { id: "guess", label: "Guess" }].map(({ id, label }) => (
             <button
               key={id}
               className={`mobile-tab ${mobileTab === id ? "active" : ""}`}
@@ -160,16 +145,12 @@ export default function Game({ initialRoundData, onGameEnd }) {
           ))}
         </nav>
 
-        {/* Panels — only one visible at a time */}
         <div className="mobile-panel-area">
           <div className={`mobile-panel ${mobileTab === "players" ? "active" : ""}`}>
             {playerPanel}
           </div>
           <div className={`mobile-panel ${mobileTab === "guess" ? "active" : ""}`}>
             {guessPanel}
-          </div>
-          <div className={`mobile-panel ${mobileTab === "chat" ? "active" : ""}`}>
-            {chatPanel}
           </div>
         </div>
       </div>

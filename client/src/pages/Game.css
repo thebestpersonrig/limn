@@ -76,13 +76,20 @@
   overflow: hidden;
 }
 
-.game-left,
+.game-left {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .game-right {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   min-height: 0;
   overflow: hidden;
+}
+
+.game-right .guess-panel {
+  flex: 1;
 }
 
 .game-center {
