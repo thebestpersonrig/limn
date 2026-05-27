@@ -5,7 +5,7 @@ import "./Lobby.css";
 const ROUND_OPTIONS = [2, 3, 4, 5];
 const TIMER_OPTIONS = [45, 60, 80, 120];
 
-export default function Lobby({ code, roomState, playerName, onGameStart }) {
+export default function Lobby({ code, roomState, playerName }) {
   const [players,     setPlayers]     = useState(roomState?.players ?? []);
   const [error,       setError]       = useState("");
   const [copied,      setCopied]      = useState(false);
@@ -27,13 +27,11 @@ export default function Lobby({ code, roomState, playerName, onGameStart }) {
     socket.on("room-state",     onRoomState);
     socket.on("player-joined",  onPlayerJoined);
     socket.on("player-left",    onPlayerLeft);
-    socket.on("round-start",    onGameStart);
     socket.on("error",          onError);
     return () => {
       socket.off("room-state",    onRoomState);
       socket.off("player-joined", onPlayerJoined);
       socket.off("player-left",   onPlayerLeft);
-      socket.off("round-start",   onGameStart);
       socket.off("error",         onError);
     };
   }, []);

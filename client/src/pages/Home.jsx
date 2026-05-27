@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import "./Home.css";
 
@@ -7,6 +7,15 @@ export default function Home({ onJoined }) {
   const [code, setCode] = useState("");
   const [mode, setMode] = useState(null); // "create" | "join"
   const [error, setError] = useState("");
+
+  // Pre-fill code if URL has #join/CODE (shareable link)
+  useEffect(() => {
+    const match = window.location.hash.match(/join\/([A-Z0-9]+)/i);
+    if (match) {
+      setCode(match[1].toUpperCase());
+      setMode("join");
+    }
+  }, []);
 
   function connect(cb) {
     const socket = getSocket();

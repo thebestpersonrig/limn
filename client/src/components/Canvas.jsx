@@ -223,15 +223,16 @@ export default function Canvas({ isDrawer }) {
     function onDrawFill({ x, y, color }) {
       floodFill(ctx, canvas, x, y, color);
     }
-    function onCanvasCleared() {
+    function doClear() {
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       history.current = [];
     }
-    function onCanvasRestore({ imageData }) {
-      applyImageData(ctx, canvas, imageData);
-    }
+
+    function onCanvasCleared()         { doClear(); }
+    function onDrawingStarted()        { doClear(); }
+    function onCanvasRestore({ imageData }) { applyImageData(ctx, canvas, imageData); }
     function onSyncRequest({ forSocket }) {
       if (!isDrawer) return;
       socket.emit("canvas-sync", { imageData: canvas.toDataURL("image/jpeg", 0.85), forSocket });
@@ -241,6 +242,7 @@ export default function Canvas({ isDrawer }) {
     socket.on("draw-shape",           onDrawShape);
     socket.on("draw-fill",            onDrawFill);
     socket.on("canvas-cleared",       onCanvasCleared);
+    socket.on("drawing-started",      onDrawingStarted);
     socket.on("canvas-restore",       onCanvasRestore);
     socket.on("sync-canvas-request",  onSyncRequest);
 
@@ -248,8 +250,9 @@ export default function Canvas({ isDrawer }) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Expose undo for toolbar button
+    // Expose for toolbar
     window.__lmnUndo = undo;
+    window.__lmnCanvasClear = doClear;
 
     return () => {
       canvas.removeEventListener("mousedown",  onDown);
@@ -264,6 +267,7 @@ export default function Canvas({ isDrawer }) {
       socket.off("draw-shape",          onDrawShape);
       socket.off("draw-fill",           onDrawFill);
       socket.off("canvas-cleared",      onCanvasCleared);
+      socket.off("drawing-started",     onDrawingStarted);
       socket.off("canvas-restore",      onCanvasRestore);
       socket.off("sync-canvas-request", onSyncRequest);
     };

@@ -8,17 +8,17 @@ import Timer from "../components/Timer";
 import WordHint from "../components/WordHint";
 import "./Game.css";
 
-export default function Game({ initialRoundData, onGameEnd }) {
+export default function Game({ initialRoundData }) {
   const socket = getSocket();
-  const [roundData, setRoundData] = useState(initialRoundData);
-  const [players, setPlayers] = useState(initialRoundData?.players ?? []);
-  const [myWord, setMyWord] = useState(null);
-  const [wordChoices, setWordChoices] = useState(initialRoundData?.wordChoices ?? null);
-  const [phase, setPhase] = useState("choosing");
+  const [roundData,    setRoundData]    = useState(initialRoundData);
+  const [players,      setPlayers]      = useState(initialRoundData?.players ?? []);
+  const [myWord,       setMyWord]       = useState(null);
+  const [wordChoices,  setWordChoices]  = useState(initialRoundData?.wordChoices ?? null);
+  const [phase,        setPhase]        = useState("choosing");
   const [roundEndWord, setRoundEndWord] = useState(null);
-  const [mobileTab, setMobileTab] = useState("guess");
+  const [mobileTab,    setMobileTab]    = useState("guess");
 
-  const isDrawer = roundData?.drawerId === socket.id;
+  const isDrawer  = roundData?.drawerId === socket.id;
   const drawerName = players.find(p => p.id === roundData?.drawerId)?.name ?? "Drawer";
 
   useEffect(() => {
@@ -31,28 +31,25 @@ export default function Game({ initialRoundData, onGameEnd }) {
       setRoundEndWord(null);
     }
     function onWordForDrawer({ word }) { setMyWord(word); setPhase("drawing"); }
-    function onDrawingStarted() { setWordChoices(null); setPhase("drawing"); }
+    function onDrawingStarted()        { setWordChoices(null); setPhase("drawing"); }
     function onCorrectGuess({ players: updated }) { setPlayers(updated); }
     function onRoundEnd({ word, players: updated }) {
       setPlayers(updated);
       setRoundEndWord(word);
       setPhase("roundEnd");
     }
-    function onGameEndEvent({ players: final }) { onGameEnd?.(final); }
 
-    socket.on("round-start", onRoundStart);
+    socket.on("round-start",     onRoundStart);
     socket.on("word-for-drawer", onWordForDrawer);
     socket.on("drawing-started", onDrawingStarted);
-    socket.on("correct-guess", onCorrectGuess);
-    socket.on("round-end", onRoundEnd);
-    socket.on("game-end", onGameEndEvent);
+    socket.on("correct-guess",   onCorrectGuess);
+    socket.on("round-end",       onRoundEnd);
     return () => {
-      socket.off("round-start", onRoundStart);
+      socket.off("round-start",     onRoundStart);
       socket.off("word-for-drawer", onWordForDrawer);
       socket.off("drawing-started", onDrawingStarted);
-      socket.off("correct-guess", onCorrectGuess);
-      socket.off("round-end", onRoundEnd);
-      socket.off("game-end", onGameEndEvent);
+      socket.off("correct-guess",   onCorrectGuess);
+      socket.off("round-end",       onRoundEnd);
     };
   }, []);
 
@@ -90,7 +87,7 @@ export default function Game({ initialRoundData, onGameEnd }) {
   );
 
   const playerPanel = <PlayerList players={players} drawerId={roundData?.drawerId} />;
-  const guessPanel = <GuessPanel isDrawer={isDrawer} myId={socket.id} />;
+  const guessPanel  = <GuessPanel isDrawer={isDrawer} myId={socket.id} />;
 
   return (
     <div className="game">
@@ -104,7 +101,7 @@ export default function Game({ initialRoundData, onGameEnd }) {
         <div className="game-header-meta">
           <Timer key={roundData?.round} initial={roundData?.roundDuration ?? 80} />
           <span className={`game-role-badge ${isDrawer ? "role-draw" : "role-guess"}`}>
-            {isDrawer ? "✏️" : "💬"}
+            {isDrawer ? "drawing" : "guessing"}
           </span>
           <span className="game-round">{roundData?.round ?? 1}/{roundData?.totalRounds ?? 3}</span>
         </div>
@@ -139,19 +136,13 @@ export default function Game({ initialRoundData, onGameEnd }) {
               key={id}
               className={`mobile-tab ${mobileTab === id ? "active" : ""}`}
               onClick={() => setMobileTab(id)}
-            >
-              {label}
-            </button>
+            >{label}</button>
           ))}
         </nav>
 
         <div className="mobile-panel-area">
-          <div className={`mobile-panel ${mobileTab === "players" ? "active" : ""}`}>
-            {playerPanel}
-          </div>
-          <div className={`mobile-panel ${mobileTab === "guess" ? "active" : ""}`}>
-            {guessPanel}
-          </div>
+          <div className={`mobile-panel ${mobileTab === "players" ? "active" : ""}`}>{playerPanel}</div>
+          <div className={`mobile-panel ${mobileTab === "guess"   ? "active" : ""}`}>{guessPanel}</div>
         </div>
       </div>
 
