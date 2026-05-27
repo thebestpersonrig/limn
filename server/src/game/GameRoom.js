@@ -1,22 +1,26 @@
 import { getRandomWords } from "./wordList.js";
 import { MAX_GUESSES } from "./Player.js";
 
-const ROUND_DURATION = 80; // seconds
-const ROUNDS_PER_GAME = 3;
+const DEFAULT_DURATION = 80;
+const DEFAULT_ROUNDS = 3;
 
 export class GameRoom {
   constructor(code, io) {
     this.code = code;
     this.io = io;
-    this.players = new Map(); // socketId → Player
-    this.state = "lobby"; // lobby | choosing | drawing | roundEnd | gameEnd
+    this.players = new Map();
+    this.state = "lobby";
     this.currentDrawerId = null;
     this.currentWord = null;
     this.wordChoices = [];
     this.round = 0;
-    this.drawerQueue = []; // ordered list of socket ids for this game
+    this.drawerQueue = [];
     this.timer = null;
-    this.timeLeft = ROUND_DURATION;
+    this.choiceTimer = null;
+    this.timeLeft = DEFAULT_DURATION;
+    this.roundDuration = DEFAULT_DURATION;
+    this.roundsPerGame = DEFAULT_ROUNDS;
+    this.revealedIndices = [];
   }
 
   addPlayer(player) {
@@ -38,12 +42,12 @@ export class GameRoom {
     this.broadcast("room-state", this.getRoomState());
   }
 
-  isEmpty() {
-    return this.players.size === 0;
-  }
+  isEmpty() { return this.players.size === 0; }
 
-  startGame() {
+  startGame(settings = {}) {
     if (this.players.size < 2) return { error: "Need at least 2 players." };
+    this.roundsPerGame = settings.rounds ?? DEFAULT_ROUNDS;
+    this.roundDuration = settings.timer ?? DEFAULT_DURATION;
     this.round = 0;
     this.drawerQueue = [...this.players.keys()];
     shuffleArray(this.drawerQueue);
@@ -52,9 +56,8 @@ export class GameRoom {
 
   nextRound() {
     this.round++;
-    if (this.round > ROUNDS_PER_GAME * this.drawerQueue.length) {
-      return this.endGame();
-    }
+    const totalRounds = this.roundsPerGame * this.drawerQueue.length;
+    if (this.round > totalRounds) return this.endGame();
 
     const drawerIndex = (this.round - 1) % this.drawerQueue.length;
     this.currentDrawerId = this.drawerQueue[drawerIndex];
@@ -65,20 +68,20 @@ export class GameRoom {
       p.isDrawing = p.id === this.currentDrawerId;
     }
 
-    this.wordChoices = getRandomWords(3);
+    this.wordChoices = getRandomWords();
     this.currentWord = null;
     this.state = "choosing";
 
-    const basePayload = {
+    const base = {
       round: this.round,
-      totalRounds: ROUNDS_PER_GAME * this.drawerQueue.length,
+      totalRounds,
+      roundDuration: this.roundDuration,
       drawerId: this.currentDrawerId,
       players: this.getPlayersArray(),
     };
 
-    // Send word choices only to drawer, bundled in round-start so it arrives together
-    this.io.to(this.currentDrawerId).emit("round-start", { ...basePayload, wordChoices: this.wordChoices });
-    this.broadcastExcept(this.currentDrawerId, "round-start", basePayload);
+    this.io.to(this.currentDrawerId).emit("round-start", { ...base, wordChoices: this.wordChoices });
+    this.broadcastExcept(this.currentDrawerId, "round-start", base);
 
     this.choiceTimer = setTimeout(() => {
       if (!this.currentWord) this.wordChosen(this.wordChoices[0]);
@@ -89,14 +92,12 @@ export class GameRoom {
     clearTimeout(this.choiceTimer);
     this.currentWord = word;
     this.state = "drawing";
-    this.timeLeft = ROUND_DURATION;
-
-    const hint = buildHint(word);
+    this.timeLeft = this.roundDuration;
+    this.revealedIndices = [];
 
     this.io.to(this.currentDrawerId).emit("word-for-drawer", { word });
-    this.broadcastExcept(this.currentDrawerId, "word-hint", { hint, length: word.length });
+    this.broadcastExcept(this.currentDrawerId, "word-hint", { hint: buildHint(word) });
     this.broadcast("drawing-started", { drawerId: this.currentDrawerId });
-
     this.startTimer();
   }
 
@@ -105,18 +106,14 @@ export class GameRoom {
     if (socketId === this.currentDrawerId) return;
 
     const player = this.players.get(socketId);
-    if (!player || player.hasGuessedCorrectly) return;
-    if (player.guessesLeft <= 0) return;
+    if (!player || player.hasGuessedCorrectly || player.guessesLeft <= 0) return;
 
     player.guessesUsed++;
 
-    const normalizedGuess = guess.trim().toLowerCase();
-    const normalizedWord = this.currentWord.toLowerCase();
-
-    if (normalizedGuess === normalizedWord) {
+    if (guess.trim().toLowerCase() === this.currentWord.toLowerCase()) {
       player.hasGuessedCorrectly = true;
-      const timeBonus = Math.floor(this.timeLeft / ROUND_DURATION * 500);
-      player.score += 300 + timeBonus;
+      // 50–500 pts depending on how early the guess was
+      player.score += Math.round(50 + (this.timeLeft / this.roundDuration) * 450);
 
       const drawer = this.players.get(this.currentDrawerId);
       if (drawer) drawer.score += 50;
@@ -128,11 +125,8 @@ export class GameRoom {
       });
 
       const nonDrawers = [...this.players.values()].filter(p => !p.isDrawing);
-      if (nonDrawers.every(p => p.hasGuessedCorrectly)) {
-        this.endRound(false);
-      }
+      if (nonDrawers.every(p => p.hasGuessedCorrectly)) this.endRound(false);
     } else {
-      // Wrong guess — goes to the guess panel only, not chat
       this.broadcast("guess-attempt", {
         playerId: socketId,
         name: player.name,
@@ -143,22 +137,16 @@ export class GameRoom {
   }
 
   handleChat(socketId, text) {
-    // Drawer cannot chat
     if (socketId === this.currentDrawerId) return;
     const player = this.players.get(socketId);
     if (!player || !text.trim()) return;
     this.broadcast("chat-message", { name: player.name, text: text.trim(), playerId: socketId });
   }
 
-  endRound(skipReveal = false) {
+  endRound() {
     this.stopTimer();
     this.state = "roundEnd";
-
-    this.broadcast("round-end", {
-      word: this.currentWord,
-      players: this.getPlayersArray(),
-    });
-
+    this.broadcast("round-end", { word: this.currentWord, players: this.getPlayersArray() });
     setTimeout(() => this.nextRound(), 4000);
   }
 
@@ -170,27 +158,40 @@ export class GameRoom {
 
   startTimer() {
     this.stopTimer();
+    const half    = Math.floor(this.roundDuration / 2);
+    const quarter = Math.floor(this.roundDuration / 4);
+
     this.timer = setInterval(() => {
       this.timeLeft--;
       this.broadcast("timer-tick", { timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.endRound(false);
+
+      if (this.timeLeft === half)    this.revealNextLetter();
+      if (this.timeLeft === quarter) this.revealNextLetter();
+
+      if (this.timeLeft <= 0) this.endRound();
     }, 1000);
   }
 
   stopTimer() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+    clearInterval(this.timer);
+    this.timer = null;
   }
 
-  broadcast(event, data) {
-    this.io.to(this.code).emit(event, data);
+  revealNextLetter() {
+    if (!this.currentWord) return;
+    const eligible = [];
+    this.currentWord.split("").forEach((c, i) => {
+      if (c !== " " && !this.revealedIndices.includes(i)) eligible.push(i);
+    });
+    if (eligible.length === 0) return;
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    this.revealedIndices.push(pick);
+    const hint = buildHintWithReveals(this.currentWord, this.revealedIndices);
+    this.broadcastExcept(this.currentDrawerId, "word-hint", { hint });
   }
 
-  broadcastExcept(excludeId, event, data) {
-    this.io.to(this.code).except(excludeId).emit(event, data);
-  }
+  broadcast(event, data)              { this.io.to(this.code).emit(event, data); }
+  broadcastExcept(id, event, data)    { this.io.to(this.code).except(id).emit(event, data); }
 
   getRoomState() {
     return {
@@ -199,6 +200,8 @@ export class GameRoom {
       round: this.round,
       players: this.getPlayersArray(),
       drawerId: this.currentDrawerId,
+      roundDuration: this.roundDuration,
+      roundsPerGame: this.roundsPerGame,
     };
   }
 
@@ -208,7 +211,14 @@ export class GameRoom {
 }
 
 function buildHint(word) {
-  return word.split("").map(c => (c === " " ? " " : "_")).join(" ");
+  return word.split("").map(c => c === " " ? " " : "_").join(" ");
+}
+
+function buildHintWithReveals(word, revealed) {
+  return word.split("").map((c, i) => {
+    if (c === " ") return " ";
+    return revealed.includes(i) ? c : "_";
+  }).join(" ");
 }
 
 function shuffleArray(arr) {

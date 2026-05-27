@@ -1,0 +1,145 @@
+.game-end {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f13;
+  padding: 20px;
+}
+
+.ge-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 20px;
+  padding: 40px 48px;
+  width: 480px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.ge-title {
+  font-family: 'Georgia', serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* ── Podium ── */
+.ge-podium {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.ge-podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 130px;
+}
+
+.ge-podium-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ge-podium-score {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ge-podium-bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  opacity: 0.85;
+}
+
+.ge-podium-rank {
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.4);
+}
+
+/* ── Rest of players ── */
+.ge-rest {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid #2a2a3a;
+  padding-top: 16px;
+}
+
+.ge-rest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #0f0f13;
+  border-radius: 8px;
+}
+
+.ge-rest-rank {
+  font-size: 12px;
+  font-weight: 700;
+  color: #555;
+  min-width: 28px;
+}
+
+.ge-rest-name {
+  flex: 1;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.ge-rest-score {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6c63ff;
+}
+
+/* ── Solo (edge case) ── */
+.ge-solo {
+  text-align: center;
+}
+.ge-solo-name  { font-size: 22px; font-weight: 700; color: #fff; }
+.ge-solo-score { font-size: 18px; color: #6c63ff; font-weight: 700; margin-top: 4px; }
+
+/* ── Play Again ── */
+.ge-play-again {
+  width: 100%;
+  padding: 14px;
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.ge-play-again:hover  { opacity: 0.9; }
+.ge-play-again:active { transform: translateY(1px); }
+
+@media (max-width: 480px) {
+  .ge-card { padding: 28px 20px; }
+  .ge-podium-name { font-size: 12px; }
+}

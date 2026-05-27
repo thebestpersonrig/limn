@@ -17,7 +17,6 @@ function PenIcon() {
     </svg>
   );
 }
-
 function LineIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -25,7 +24,6 @@ function LineIcon() {
     </svg>
   );
 }
-
 function RectIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -33,7 +31,6 @@ function RectIcon() {
     </svg>
   );
 }
-
 function CircleIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -41,7 +38,15 @@ function CircleIcon() {
     </svg>
   );
 }
-
+function FillIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 13.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5S4.3 15 3.5 15 2 14.3 2 13.5z" fill="currentColor" stroke="none"/>
+      <path d="M3.5 12L9 6.5 4.5 2 2 4.5 7.5 10"/>
+      <path d="M9 6.5l3.5-3.5 1 1-3.5 3.5"/>
+    </svg>
+  );
+}
 function EraserIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -50,7 +55,14 @@ function EraserIcon() {
     </svg>
   );
 }
-
+function UndoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7H9.5a3.5 3.5 0 010 7H7"/>
+      <polyline points="3,4 3,7 6,7"/>
+    </svg>
+  );
+}
 function TrashIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -66,13 +78,14 @@ const TOOLS = [
   { id: "line",   label: "Line",   Icon: LineIcon },
   { id: "rect",   label: "Rect",   Icon: RectIcon },
   { id: "circle", label: "Circle", Icon: CircleIcon },
+  { id: "fill",   label: "Fill",   Icon: FillIcon },
   { id: "eraser", label: "Eraser", Icon: EraserIcon },
 ];
 
 export default function Toolbar({ isDrawer }) {
   const [color, setColor] = useState("#000000");
-  const [size, setSize] = useState(7);
-  const [mode, setMode] = useState("pen");
+  const [size,  setSize]  = useState(7);
+  const [mode,  setMode]  = useState("pen");
   const socket = getSocket();
 
   function setTool(updates) {
@@ -81,20 +94,16 @@ export default function Toolbar({ isDrawer }) {
 
   function pickColor(c) {
     setColor(c);
-    const nextMode = mode === "eraser" ? "pen" : mode;
+    const next = mode === "eraser" ? "pen" : mode;
     if (mode === "eraser") setMode("pen");
-    setTool({ color: c, mode: nextMode });
+    setTool({ color: c, mode: next });
   }
 
-  function pickSize(s) {
-    setSize(s);
-    setTool({ size: s });
-  }
+  function pickSize(s) { setSize(s); setTool({ size: s }); }
 
-  function pickMode(m) {
-    setMode(m);
-    setTool({ mode: m });
-  }
+  function pickMode(m) { setMode(m); setTool({ mode: m }); }
+
+  function doUndo() { window.__lmnUndo?.(); }
 
   function clearCanvas() {
     socket.emit("clear-canvas");
@@ -134,6 +143,9 @@ export default function Toolbar({ isDrawer }) {
           </button>
         ))}
         <div className="toolbar-divider-v" />
+        <button className="tool-icon-btn" onClick={doUndo} title="Undo (Ctrl+Z)">
+          <UndoIcon />
+        </button>
         <button className="tool-icon-btn clear-btn" onClick={clearCanvas} title="Clear canvas">
           <TrashIcon />
         </button>
@@ -149,10 +161,7 @@ export default function Toolbar({ isDrawer }) {
             onClick={() => pickSize(s)}
             title={`Size ${s}`}
           >
-            <span
-              className="size-dot"
-              style={{ width: Math.min(s, 22), height: Math.min(s, 22), background: dotColor }}
-            />
+            <span className="size-dot" style={{ width: Math.min(s, 22), height: Math.min(s, 22), background: dotColor }} />
           </button>
         ))}
       </div>

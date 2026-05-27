@@ -102,7 +102,7 @@ export default function Game({ initialRoundData, onGameEnd }) {
           <WordHint word={myWord} isDrawer={isDrawer} />
         </div>
         <div className="game-header-meta">
-          <Timer initial={80} />
+          <Timer key={roundData?.round} initial={roundData?.roundDuration ?? 80} />
           <span className={`game-role-badge ${isDrawer ? "role-draw" : "role-guess"}`}>
             {isDrawer ? "✏️" : "💬"}
           </span>

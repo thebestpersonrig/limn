@@ -1,1 +1,37 @@
-/* intentionally empty — component styles live in their own CSS files */
+.disconnect-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 16, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 32px;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+  animation: dc-fadein 0.3s ease;
+}
+
+.disconnect-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+}
+
+.disconnect-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #2a2a3a;
+  border-top-color: #6c63ff;
+  border-radius: 50%;
+  animation: dc-spin 0.7s linear infinite;
+}
+
+@keyframes dc-spin    { to { transform: rotate(360deg); } }
+@keyframes dc-fadein  { from { opacity: 0; } to { opacity: 1; } }
