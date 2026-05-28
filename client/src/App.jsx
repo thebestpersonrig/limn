@@ -24,7 +24,9 @@ export default function App() {
 
   useEffect(() => { screenRef.current = screen; }, [screen]);
 
-  // ── Global socket wiring (Limn) ──────────────────────────
+  // ── Global socket wiring (Limn + reconnect) ──────────────
+  const wasConnected = useRef(false);
+
   useEffect(() => {
     const s = getSocket();
 
@@ -37,27 +39,43 @@ export default function App() {
       setScreen("end");
       clearSession();
     }
-    function onDisconnect() { setConnected(false); }
-    function onReconnect()  {
+
+    function onConnect() {
       setConnected(true);
+      // Only attempt rejoin if this is a RE-connection (not the first connect)
+      if (!wasConnected.current) {
+        wasConnected.current = true;
+        return;
+      }
       const session = getSession();
-      if (session && !["hub", "home", "end", "mafia-home", "mafia-end"].includes(screenRef.current)) {
+      const scr = screenRef.current;
+      if (!session || ["hub", "home", "end", "mafia-home", "mafia-end"].includes(scr)) return;
+
+      if (session.gameType === "mafia") {
+        s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else {
         s.emit("rejoin", session);
       }
     }
-    function onRejoinFailed() { clearSession(); setScreen("hub"); }
 
-    s.on("round-start",   onRoundStart);
-    s.on("game-end",      onGameEndEvent);
-    s.on("disconnect",    onDisconnect);
-    s.on("reconnect",     onReconnect);
-    s.on("rejoin-failed", onRejoinFailed);
+    function onDisconnect() { setConnected(false); }
+
+    function onRejoinFailed() { clearSession(); setScreen("hub"); }
+    function onMafiaRejoinFailed() { clearSession(); setScreen("hub"); }
+
+    s.on("round-start",          onRoundStart);
+    s.on("game-end",             onGameEndEvent);
+    s.on("connect",              onConnect);
+    s.on("disconnect",           onDisconnect);
+    s.on("rejoin-failed",        onRejoinFailed);
+    s.on("mafia-rejoin-failed",  onMafiaRejoinFailed);
     return () => {
-      s.off("round-start",   onRoundStart);
-      s.off("game-end",      onGameEndEvent);
-      s.off("disconnect",    onDisconnect);
-      s.off("reconnect",     onReconnect);
-      s.off("rejoin-failed", onRejoinFailed);
+      s.off("round-start",          onRoundStart);
+      s.off("game-end",             onGameEndEvent);
+      s.off("connect",              onConnect);
+      s.off("disconnect",           onDisconnect);
+      s.off("rejoin-failed",        onRejoinFailed);
+      s.off("mafia-rejoin-failed",  onMafiaRejoinFailed);
     };
   }, []);
 
@@ -97,17 +115,34 @@ export default function App() {
     if (!session) return;
 
     const s = getSocket();
-    function doRejoin() { s.emit("rejoin", session); }
+
+    function doRejoin() {
+      wasConnected.current = true; // Mark so next connect is treated as reconnect
+      if (session.gameType === "mafia") {
+        s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else {
+        s.emit("rejoin", session);
+      }
+    }
+
     function onRejoined({ code, roomState }) {
       setSessionData({ code, roomState, playerName: session.name });
       setScreen("lobby");
     }
+    function onMafiaRejoined({ code, roomState }) {
+      setSessionData({ code, roomState, playerName: session.name });
+      setScreen("mafia-lobby");
+    }
 
     s.once("rejoined", onRejoined);
+    s.once("mafia-rejoined", onMafiaRejoined);
     if (s.connected) { doRejoin(); }
     else { s.connect(); s.once("connect", doRejoin); }
 
-    return () => { s.off("rejoined", onRejoined); };
+    return () => {
+      s.off("rejoined", onRejoined);
+      s.off("mafia-rejoined", onMafiaRejoined);
+    };
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────
@@ -123,14 +158,14 @@ export default function App() {
 
   function handleJoined({ code, roomState }) {
     setSessionData({ code, roomState, playerName });
-    saveSession(playerName, code);
+    saveSession(playerName, code, "limn");
     window.location.hash = `join/${code}`;
     setScreen("lobby");
   }
 
   function handleMafiaJoined({ code, roomState }) {
     setSessionData({ code, roomState, playerName });
-    saveSession(playerName, code);
+    saveSession(playerName, code, "mafia");
     window.location.hash = `join/mafia/${code}`;
     setScreen("mafia-lobby");
   }
@@ -228,6 +263,9 @@ export default function App() {
           <div className="disconnect-box">
             <div className="disconnect-spinner" />
             <span>Reconnecting…</span>
+            <button className="disconnect-bail" onClick={handleBackToHub}>
+              Back to Hub
+            </button>
           </div>
         </div>
       )}

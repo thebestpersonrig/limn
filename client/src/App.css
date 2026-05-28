@@ -33,5 +33,22 @@
   animation: dc-spin 0.7s linear infinite;
 }
 
+.disconnect-bail {
+  background: transparent;
+  border: 1px solid #333;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.disconnect-bail:hover {
+  color: #aaa;
+  border-color: #555;
+}
+
 @keyframes dc-spin    { to { transform: rotate(360deg); } }
 @keyframes dc-fadein  { from { opacity: 0; } to { opacity: 1; } }

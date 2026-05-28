@@ -13,8 +13,9 @@ export function getSocket() {
     socket = io(SERVER_URL, {
       autoConnect: false,
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
       pingTimeout: 30000,
     });
   }
@@ -29,9 +30,9 @@ export function getSavedName() {
   return localStorage.getItem("romp_player_name") ?? "";
 }
 
-export function saveSession(name, roomCode) {
+export function saveSession(name, roomCode, gameType = "limn") {
   savePlayerName(name);
-  localStorage.setItem("limn_session", JSON.stringify({ name, roomCode }));
+  localStorage.setItem("limn_session", JSON.stringify({ name, roomCode, gameType }));
 }
 
 
