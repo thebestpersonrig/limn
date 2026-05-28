@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import "./MafiaHome.css";
 
@@ -13,13 +13,7 @@ export default function MafiaHome({ playerName, onJoined, onBack }) {
   const [detective,  setDetective]  = useState(true);
   const [doctor,     setDoctor]     = useState(true);
 
-  useEffect(() => {
-    const match = window.location.hash.match(/join\/mafia\/([A-Z0-9]+)/i);
-    if (match) {
-      setCode(match[1].toUpperCase());
-      setMode("join");
-    }
-  }, []);
+  // No URL parsing needed — /mafia/:code routes handle join links directly
 
   function connect(cb) {
     const socket = getSocket();

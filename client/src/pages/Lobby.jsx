@@ -42,7 +42,8 @@ export default function Lobby({ code, roomState, playerName }) {
   }
 
   function copyCode() {
-    navigator.clipboard.writeText(code).then(() => {
+    const url = `${window.location.origin}/limn/${code}`;
+    navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -58,7 +59,7 @@ export default function Lobby({ code, roomState, playerName }) {
           <div className="lobby-code-box">
             <span className="code-badge">{code}</span>
             <button className="copy-btn" onClick={copyCode}>
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copied!" : "Copy link"}
             </button>
           </div>
         </div>

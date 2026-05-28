@@ -38,7 +38,8 @@ export default function MafiaLobby({ code, roomState, playerName }) {
   }
 
   function copyCode() {
-    navigator.clipboard.writeText(code).then(() => {
+    const url = `${window.location.origin}/mafia/${code}`;
+    navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -57,7 +58,7 @@ export default function MafiaLobby({ code, roomState, playerName }) {
           <div className="mlobby-code-box">
             <span className="mlobby-code-badge">{code}</span>
             <button className="mlobby-copy-btn" onClick={copyCode}>
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copied!" : "Copy link"}
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import "./Home.css";
 
@@ -8,14 +8,7 @@ export default function Home({ playerName, onJoined, onBack }) {
   const [error,   setError]   = useState("");
   const [pending, setPending] = useState(false);
 
-  // Pre-fill code if URL has #join/CODE (shareable link)
-  useEffect(() => {
-    const match = window.location.hash.match(/join\/([A-Z0-9]+)/i);
-    if (match) {
-      setCode(match[1].toUpperCase());
-      setMode("join");
-    }
-  }, []);
+  // No URL parsing needed — /limn/:code routes handle join links directly
 
   function connect(cb) {
     const socket = getSocket();
