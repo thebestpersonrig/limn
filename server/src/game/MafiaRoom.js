@@ -103,7 +103,10 @@ export class MafiaRoom {
       players: this.getAllPlayers(),
     });
 
-    setTimeout(() => this.startDay(), 5000);
+    setTimeout(() => {
+      try { this.startDay(); }
+      catch (err) { console.error("[MafiaRoom startDay error]", err); }
+    }, 5000);
   }
 
   // -- Day phase --
@@ -199,7 +202,10 @@ export class MafiaRoom {
     if (alive.every(p => p.votedFor !== null)) {
       this.stopTimer();
       // Small delay so players see the final vote
-      setTimeout(() => this.resolveVote(), 1500);
+      setTimeout(() => {
+        try { this.resolveVote(); }
+        catch (err) { console.error("[MafiaRoom resolveVote error]", err); }
+      }, 1500);
     }
   }
 
@@ -234,9 +240,15 @@ export class MafiaRoom {
 
     const winner = this.checkWin();
     if (winner) {
-      setTimeout(() => this.endGame(winner), 4000);
+      setTimeout(() => {
+        try { this.endGame(winner); }
+        catch (err) { console.error("[MafiaRoom endGame error]", err); }
+      }, 4000);
     } else {
-      setTimeout(() => this.startNight(), 4000);
+      setTimeout(() => {
+        try { this.startNight(); }
+        catch (err) { console.error("[MafiaRoom startNight error]", err); }
+      }, 4000);
     }
   }
 
@@ -359,9 +371,15 @@ export class MafiaRoom {
 
     const winner = this.checkWin();
     if (winner) {
-      setTimeout(() => this.endGame(winner), 4000);
+      setTimeout(() => {
+        try { this.endGame(winner); }
+        catch (err) { console.error("[MafiaRoom endGame error]", err); }
+      }, 4000);
     } else {
-      setTimeout(() => this.startDay(), 4000);
+      setTimeout(() => {
+        try { this.startDay(); }
+        catch (err) { console.error("[MafiaRoom startDay error]", err); }
+      }, 4000);
     }
   }
 
@@ -387,11 +405,16 @@ export class MafiaRoom {
   startTimer(onExpire) {
     this.stopTimer();
     this.timer = setInterval(() => {
-      this.timeLeft--;
-      this.broadcast("mafia-timer-tick", { timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) {
+      try {
+        this.timeLeft--;
+        this.broadcast("mafia-timer-tick", { timeLeft: this.timeLeft });
+        if (this.timeLeft <= 0) {
+          this.stopTimer();
+          onExpire();
+        }
+      } catch (err) {
+        console.error("[MafiaRoom timer error]", err);
         this.stopTimer();
-        onExpire();
       }
     }, 1000);
   }

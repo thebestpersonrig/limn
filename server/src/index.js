@@ -4,6 +4,14 @@ import { Server } from "socket.io";
 import cors from "cors";
 import { registerHandlers } from "./socket/handlers.js";
 
+// Prevent server crash on unhandled errors — log them instead
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught exception:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[FATAL] Unhandled rejection:", reason);
+});
+
 const PORT = process.env.PORT ?? 3001;
 // Strip trailing slash — CORS origin must match exactly
 const CLIENT_URL = (process.env.CLIENT_URL ?? "http://localhost:5173").replace(/\/+$/, "");

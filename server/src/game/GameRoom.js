@@ -84,7 +84,8 @@ export class GameRoom {
     this.broadcastExcept(this.currentDrawerId, "round-start", base);
 
     this.choiceTimer = setTimeout(() => {
-      if (!this.currentWord) this.wordChosen(this.wordChoices[0]);
+      try { if (!this.currentWord) this.wordChosen(this.wordChoices[0]); }
+      catch (err) { console.error("[GameRoom choiceTimer error]", err); }
     }, 15000);
   }
 
@@ -149,7 +150,10 @@ export class GameRoom {
     this.stopTimer();
     this.state = "roundEnd";
     this.broadcast("round-end", { word: this.currentWord, players: this.getPlayersArray() });
-    setTimeout(() => this.nextRound(), 4000);
+    setTimeout(() => {
+      try { this.nextRound(); }
+      catch (err) { console.error("[GameRoom nextRound error]", err); }
+    }, 4000);
   }
 
   endGame() {
@@ -164,13 +168,18 @@ export class GameRoom {
     const quarter = Math.floor(this.roundDuration / 4);
 
     this.timer = setInterval(() => {
-      this.timeLeft--;
-      this.broadcast("timer-tick", { timeLeft: this.timeLeft });
+      try {
+        this.timeLeft--;
+        this.broadcast("timer-tick", { timeLeft: this.timeLeft });
 
-      if (this.timeLeft === half)    this.revealNextLetter();
-      if (this.timeLeft === quarter) this.revealNextLetter();
+        if (this.timeLeft === half)    this.revealNextLetter();
+        if (this.timeLeft === quarter) this.revealNextLetter();
 
-      if (this.timeLeft <= 0) this.endRound();
+        if (this.timeLeft <= 0) this.endRound();
+      } catch (err) {
+        console.error("[GameRoom timer error]", err);
+        this.stopTimer();
+      }
     }, 1000);
   }
 
