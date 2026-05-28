@@ -3,21 +3,24 @@
   background: #0f0f13;
   display: flex;
   flex-direction: column;
-  transition: background 0.5s;
+  transition: background 0.8s ease;
 }
 
 .mgame--night {
-  background: #080810;
+  background: #06060c;
 }
 
-/* ── Header ── */
+/* -- Header -- */
 .mgame-header {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid #1a1a24;
   flex-shrink: 0;
+  background: rgba(15, 15, 19, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 10;
 }
 
 .mgame-logo {
@@ -51,6 +54,7 @@
   border-radius: 999px;
   background: #1a1a24;
   color: #888;
+  transition: all 0.3s ease;
 }
 .phase-day, .phase-vote { background: #172554; color: #93c5fd; }
 .phase-night, .phase-nightResult { background: #1c1c2e; color: #a78bfa; }
@@ -64,9 +68,50 @@
   color: #facc15;
   min-width: 36px;
   text-align: center;
+  transition: color 0.3s;
 }
 
-/* ── Body layout ── */
+.mgame-timer--warn {
+  color: #ef4444;
+  animation: timerPulse 0.6s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(1.1); }
+}
+
+.mgame-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mgame-alive-count {
+  font-size: 12px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* -- Dead spectator banner -- */
+.mgame-dead-banner {
+  background: linear-gradient(90deg, #1c0a0a, #0f0f13);
+  border-bottom: 1px solid #2a1515;
+  padding: 8px 20px;
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: deadBannerIn 0.5s ease;
+}
+
+@keyframes deadBannerIn {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Body layout -- */
 .mgame-body {
   flex: 1;
   display: flex;
@@ -89,7 +134,7 @@
   min-height: 0;
 }
 
-/* ── Night split (mafia chat + action) ── */
+/* -- Night split (mafia chat + action) -- */
 .mgame-night-split {
   flex: 1;
   display: flex;
@@ -99,42 +144,146 @@
 }
 .mgame-night-split .cpanel { flex: 1; }
 
-/* ── Result overlays ── */
+/* -- Result overlays -- */
 .mgame-result-overlay {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
   padding: 40px 20px;
+  animation: resultFadeIn 0.5s ease;
 }
 
+@keyframes resultFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mgame-result--elim { background: radial-gradient(ellipse at center, rgba(69,10,10,0.3), transparent 70%); }
+.mgame-result--night { background: radial-gradient(ellipse at center, rgba(28,28,46,0.3), transparent 70%); }
+
 .mgame-result-icon {
-  font-size: 48px;
+  font-size: 56px;
   line-height: 1;
+  animation: resultIconPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes resultIconPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .mgame-result-text {
-  font-size: 18px;
+  font-size: 20px;
   color: #ccc;
   margin: 0;
+  line-height: 1.4;
 }
 .mgame-result-text strong {
   color: #fff;
 }
 
 .mgame-result-role {
-  font-size: 14px;
+  font-size: 15px;
   color: #888;
   margin: 0;
 }
 .mgame-result-role strong {
   color: #dc2626;
+  text-transform: capitalize;
 }
 
-/* ── Mobile ── */
+.mgame-result-sub {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* -- Loading dots -- */
+.mgame-loading-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mgame-loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444;
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.mgame-loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+.mgame-loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-8px); opacity: 1; }
+}
+
+/* -- Phase transition overlay -- */
+.mgame-transition {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 6, 12, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 40;
+  animation: transIn 0.4s ease, transOut 0.4s ease 1.6s forwards;
+  pointer-events: none;
+}
+
+@keyframes transIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes transOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.mgame-transition-icon {
+  font-size: 64px;
+  line-height: 1;
+  animation: transIconDrift 2s ease;
+}
+
+@keyframes transIconDrift {
+  from { transform: scale(0.7) translateY(10px); opacity: 0; }
+  20%  { transform: scale(1) translateY(0); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mgame-transition-title {
+  font-family: 'Georgia', serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  animation: transTextSlide 2s ease;
+}
+
+.mgame-transition-sub {
+  font-size: 15px;
+  color: #777;
+  margin: 0;
+  animation: transTextSlide 2s ease 0.1s both;
+}
+
+@keyframes transTextSlide {
+  from { transform: translateY(8px); opacity: 0; }
+  15%  { transform: translateY(0); opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* -- Mobile -- */
 @media (max-width: 700px) {
   .mgame-body {
     flex-direction: column;
@@ -148,4 +297,7 @@
   .mgame-panel { flex: 1; min-height: 0; }
   .mgame-header { padding: 10px 14px; gap: 10px; }
   .mgame-logo { font-size: 18px; }
+  .mgame-transition-title { font-size: 24px; }
+  .mgame-transition-icon { font-size: 48px; }
+  .mgame-alive-count { display: none; }
 }

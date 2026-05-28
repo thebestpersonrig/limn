@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSocket } from "../hooks/useSocket";
 import { RoleCardFull, RoleBadge } from "../components/mafia/RoleCard";
 import PlayerGrid from "../components/mafia/PlayerGrid";
 import ChatPanel from "../components/mafia/ChatPanel";
 import NightPanel from "../components/mafia/NightPanel";
 import "./MafiaGame.css";
+
+const TRANSITION_TEXT = {
+  night:       { icon: "🌙", title: "Night falls...", sub: "The town sleeps. Evil lurks in the shadows." },
+  day:         { icon: "☀️", title: "Dawn breaks", sub: "The town gathers to discuss." },
+  vote:        { icon: "🗳️", title: "Time to vote", sub: "Choose who to eliminate." },
+  elimResult:  { icon: "⚰️", title: "The verdict...", sub: "" },
+  nightResult: { icon: "🌅", title: "The sun rises...", sub: "What happened last night?" },
+};
 
 export default function MafiaGame({ initialRole }) {
   const socket = getSocket();
@@ -23,7 +31,8 @@ export default function MafiaGame({ initialRole }) {
   const [mafiaMessages, setMafiaMessages] = useState([]);
 
   // Vote
-  const [votes, setVotes] = useState([]);
+  const [votes,     setVotes]     = useState([]);
+  const [lastVote,  setLastVote]  = useState(null);
 
   // Night
   const [nightActionDone,  setNightActionDone]  = useState(false);
@@ -32,6 +41,18 @@ export default function MafiaGame({ initialRole }) {
   // Results
   const [elimResult,  setElimResult]  = useState(null);
   const [nightResult, setNightResult] = useState(null);
+
+  // Transitions
+  const [transition, setTransition] = useState(null);
+  const transitionTimer = useRef(null);
+
+  function showTransition(phaseKey) {
+    const t = TRANSITION_TEXT[phaseKey];
+    if (!t) return;
+    setTransition(t);
+    clearTimeout(transitionTimer.current);
+    transitionTimer.current = setTimeout(() => setTransition(null), 2000);
+  }
 
   // Auto-dismiss role card when mounting mid-roleReveal
   useEffect(() => {
@@ -46,59 +67,59 @@ export default function MafiaGame({ initialRole }) {
       setMyRole(role);
       setMafiaTeam(mafiaTeam);
       setShowRole(true);
+      setTimeout(() => setShowRole(false), 4500);
     }
 
-    function onPhase({ phase, day, timeLeft, alivePlayers }) {
-      setPhase(phase);
-      if (day !== undefined) setDay(day);
-      if (timeLeft !== undefined) setTimeLeft(timeLeft);
-      if (alivePlayers) setPlayers(prev => {
-        // Merge alive status into existing players
-        const map = new Map(prev.map(p => [p.id, p]));
-        alivePlayers.forEach(p => map.set(p.id, { ...map.get(p.id), ...p }));
-        return [...map.values()];
-      });
+    function onPhase({ phase: p, day: d, timeLeft: tl, players: pl }) {
+      // Show transition for dramatic phases
+      if (["night", "day", "vote"].includes(p)) {
+        showTransition(p);
+      }
 
-      if (phase === "day" || phase === "vote") {
+      setPhase(p);
+      if (d !== undefined) setDay(d);
+      if (tl !== undefined) setTimeLeft(tl);
+      if (pl) setPlayers(pl);
+
+      if (p === "day") {
+        setVotes([]);
+        setLastVote(null);
         setElimResult(null);
         setNightResult(null);
+        setMafiaMessages([]); // Clear mafia chat each night cycle
       }
-      if (phase === "day") {
+      if (p === "vote") {
         setVotes([]);
+        setLastVote(null);
       }
-      if (phase === "night") {
+      if (p === "night") {
         setNightActionDone(false);
         setDetectiveResult(null);
       }
-      if (phase === "roleReveal") {
+      if (p === "roleReveal") {
         setShowRole(true);
         setTimeout(() => setShowRole(false), 4500);
       }
     }
 
-    function onTick({ timeLeft }) { setTimeLeft(timeLeft); }
+    function onTick({ timeLeft: tl }) { setTimeLeft(tl); }
 
     function onDayMessage(msg)   { setDayMessages(prev => [...prev, msg]); }
     function onNightMessage(msg) { setMafiaMessages(prev => [...prev, msg]); }
 
-    function onVoteUpdate({ votes }) { setVotes(votes); }
-
-    function onElimResult({ eliminated }) {
-      setElimResult(eliminated);
-      if (eliminated) {
-        setPlayers(prev => prev.map(p =>
-          p.id === eliminated.id ? { ...p, isAlive: false, role: eliminated.role } : p
-        ));
-      }
+    function onVoteUpdate({ votes: v, latestVote }) {
+      setVotes(v);
+      if (latestVote) setLastVote(latestVote);
     }
 
-    function onNightResult({ killed, saved }) {
+    function onElimResult({ eliminated, players: pl }) {
+      setElimResult(eliminated);
+      if (pl) setPlayers(pl);
+    }
+
+    function onNightResult({ killed, saved, players: pl }) {
       setNightResult({ killed, saved });
-      if (killed) {
-        setPlayers(prev => prev.map(p =>
-          p.id === killed.id ? { ...p, isAlive: false, role: killed.role } : p
-        ));
-      }
+      if (pl) setPlayers(pl);
     }
 
     function onActionConfirmed() { setNightActionDone(true); }
@@ -113,8 +134,9 @@ export default function MafiaGame({ initialRole }) {
     function onPlayerJoined({ player }) {
       setPlayers(prev => [...prev.filter(p => p.id !== player.id), player]);
     }
-    function onPlayerLeft({ playerId }) {
+    function onPlayerLeft({ playerId, name }) {
       setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, isAlive: false } : p));
+      setDayMessages(prev => [...prev, { system: true, text: `${name || "A player"} disconnected.` }]);
     }
 
     socket.on("mafia-role-assigned",    onRoleAssigned);
@@ -145,6 +167,7 @@ export default function MafiaGame({ initialRole }) {
       socket.off("mafia-room-state",        onRoomState);
       socket.off("mafia-player-joined",     onPlayerJoined);
       socket.off("mafia-player-left",       onPlayerLeft);
+      clearTimeout(transitionTimer.current);
     };
   }, []);
 
@@ -153,8 +176,11 @@ export default function MafiaGame({ initialRole }) {
   function sendVote(targetId)  { socket.emit("mafia-vote",       { targetId }); }
   function sendNightAction(targetId) { socket.emit("mafia-night-action", { targetId }); }
 
-  const amAlive = players.find(p => p.id === myId)?.isAlive ?? true;
+  const me = players.find(p => p.id === myId);
+  const amAlive = me?.isAlive ?? true;
   const isNight = phase === "night" || phase === "nightResult";
+  const timerWarning = timeLeft > 0 && timeLeft <= 10;
+  const myVote = votes.find(v => v.voterId === myId)?.targetId ?? null;
 
   // Phase label
   const phaseLabels = {
@@ -166,6 +192,9 @@ export default function MafiaGame({ initialRole }) {
     nightResult: "Dawn",
   };
 
+  // Alive count
+  const aliveCount = players.filter(p => p.isAlive).length;
+
   return (
     <div className={`mgame ${isNight ? "mgame--night" : ""}`}>
       {/* Header */}
@@ -176,10 +205,24 @@ export default function MafiaGame({ initialRole }) {
           <span className={`mgame-phase-badge phase-${phase}`}>
             {phaseLabels[phase] || phase}
           </span>
-          {timeLeft > 0 && <span className="mgame-timer">{timeLeft}s</span>}
+          {(phase === "day" || phase === "vote" || phase === "night") && timeLeft > 0 && (
+            <span className={`mgame-timer ${timerWarning ? "mgame-timer--warn" : ""}`}>
+              {timeLeft}s
+            </span>
+          )}
         </div>
-        {myRole && <RoleBadge role={myRole} />}
+        <div className="mgame-header-right">
+          <span className="mgame-alive-count">{aliveCount} alive</span>
+          {myRole && <RoleBadge role={myRole} />}
+        </div>
       </div>
+
+      {/* Dead spectator banner */}
+      {!amAlive && phase !== "roleReveal" && (
+        <div className="mgame-dead-banner">
+          <span>💀</span> You were eliminated. Watching as a ghost...
+        </div>
+      )}
 
       {/* Main layout */}
       <div className="mgame-body">
@@ -191,6 +234,7 @@ export default function MafiaGame({ initialRole }) {
             phase={phase}
             votes={votes}
             onVote={sendVote}
+            myVote={myVote}
           />
         </div>
 
@@ -201,7 +245,7 @@ export default function MafiaGame({ initialRole }) {
               messages={dayMessages}
               onSend={sendDayChat}
               disabled={!amAlive}
-              label={phase === "vote" ? "Chat (voting open)" : "Town Discussion"}
+              label={phase === "vote" ? "Chat (voting open)" : `Town Discussion — Day ${day}`}
               variant="day"
             />
           )}
@@ -238,38 +282,39 @@ export default function MafiaGame({ initialRole }) {
           )}
 
           {phase === "elimResult" && (
-            <div className="mgame-result-overlay">
+            <div className="mgame-result-overlay mgame-result--elim">
               {elimResult ? (
                 <>
                   <span className="mgame-result-icon">⚰️</span>
                   <p className="mgame-result-text">
-                    <strong>{elimResult.name}</strong> was eliminated.
+                    <strong>{elimResult.name}</strong> was eliminated by the town.
                   </p>
                   <p className="mgame-result-role">
-                    They were a <strong>{elimResult.role}</strong>.
+                    They were <strong>{elimResult.role}</strong>.
                   </p>
                 </>
               ) : (
                 <>
                   <span className="mgame-result-icon">🤷</span>
                   <p className="mgame-result-text">
-                    The town couldn't decide. No one was eliminated.
+                    The town couldn't agree.
                   </p>
+                  <p className="mgame-result-sub">No one was eliminated.</p>
                 </>
               )}
             </div>
           )}
 
           {phase === "nightResult" && (
-            <div className="mgame-result-overlay">
+            <div className="mgame-result-overlay mgame-result--night">
               {nightResult?.killed ? (
                 <>
                   <span className="mgame-result-icon">💀</span>
                   <p className="mgame-result-text">
-                    <strong>{nightResult.killed.name}</strong> was killed last night.
+                    <strong>{nightResult.killed.name}</strong> was found dead.
                   </p>
                   <p className="mgame-result-role">
-                    They were a <strong>{nightResult.killed.role}</strong>.
+                    They were <strong>{nightResult.killed.role}</strong>.
                   </p>
                 </>
               ) : (
@@ -277,8 +322,8 @@ export default function MafiaGame({ initialRole }) {
                   <span className="mgame-result-icon">{nightResult?.saved ? "💊" : "☀️"}</span>
                   <p className="mgame-result-text">
                     {nightResult?.saved
-                      ? "The Doctor saved someone! No one died last night."
-                      : "No one was killed last night."
+                      ? "The Doctor saved a life!"
+                      : "A peaceful night. No one was killed."
                     }
                   </p>
                 </>
@@ -289,11 +334,21 @@ export default function MafiaGame({ initialRole }) {
           {phase === "roleReveal" && !showRole && (
             <div className="mgame-result-overlay">
               <span className="mgame-result-icon">🌅</span>
-              <p className="mgame-result-text">The game is about to begin…</p>
+              <p className="mgame-result-text">The game is about to begin...</p>
+              <div className="mgame-loading-dots"><span /><span /><span /></div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Phase transition overlay */}
+      {transition && (
+        <div className="mgame-transition" key={transition.title}>
+          <span className="mgame-transition-icon">{transition.icon}</span>
+          <h2 className="mgame-transition-title">{transition.title}</h2>
+          {transition.sub && <p className="mgame-transition-sub">{transition.sub}</p>}
+        </div>
+      )}
 
       {/* Role reveal overlay */}
       {showRole && myRole && phase === "roleReveal" && (

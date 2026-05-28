@@ -7,45 +7,72 @@ const ROLE_COLORS = {
   civilian: "#6b7280",
 };
 
-export default function PlayerGrid({ players, myId, phase, votes, onVote }) {
-  // Build vote count map
-  const voteCounts = {};
-  (votes || []).forEach(({ targetId }) => {
-    voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+const ROLE_EMOJI = {
+  mafia: "🔪",
+  detective: "🔍",
+  doctor: "💊",
+  civilian: "🏠",
+};
+
+export default function PlayerGrid({ players, myId, phase, votes, onVote, myVote }) {
+  // Build vote count + voter names map
+  const voteData = {};
+  (votes || []).forEach(({ voterId, voterName, targetId }) => {
+    if (!voteData[targetId]) voteData[targetId] = { count: 0, voters: [] };
+    voteData[targetId].count++;
+    if (voterName) voteData[targetId].voters.push(voterName);
   });
-  const myVote = (votes || []).find(v => v.voterId === myId)?.targetId;
+
   const isVoting = phase === "vote";
   const amAlive = players.find(p => p.id === myId)?.isAlive;
 
   return (
     <div className="pgrid">
+      <div className="pgrid-section-label">
+        {isVoting ? "Click to vote" : `Players (${players.filter(p => p.isAlive).length} alive)`}
+      </div>
       {players.map(p => {
         const dead = !p.isAlive;
         const isMe = p.id === myId;
-        const canVote = isVoting && amAlive && !isMe && !dead && !myVote;
-        const voteCount = voteCounts[p.id] || 0;
+        // Allow re-voting: only block if dead or self
+        const canVote = isVoting && amAlive && !isMe && !dead;
+        const data = voteData[p.id];
         const votedByMe = myVote === p.id;
 
         return (
           <div
             key={p.id}
-            className={`pgrid-tile ${dead ? "dead" : ""} ${canVote ? "votable" : ""} ${votedByMe ? "voted-by-me" : ""}`}
+            className={[
+              "pgrid-tile",
+              dead && "dead",
+              canVote && "votable",
+              votedByMe && "voted-by-me",
+              isMe && "is-me",
+            ].filter(Boolean).join(" ")}
             onClick={() => canVote && onVote?.(p.id)}
           >
             <div className="pgrid-avatar" data-dead={dead}>
               {dead ? "💀" : p.name[0].toUpperCase()}
             </div>
-            <span className={`pgrid-name ${isMe ? "is-me" : ""}`}>
+            <span className="pgrid-name">
               {p.name}{isMe ? " (you)" : ""}
             </span>
             {dead && p.role && (
               <span className="pgrid-role-tag" style={{ color: ROLE_COLORS[p.role] || "#777" }}>
-                {p.role}
+                {ROLE_EMOJI[p.role] || ""} {p.role}
               </span>
             )}
-            {isVoting && voteCount > 0 && (
-              <span className="pgrid-vote-count">{voteCount} vote{voteCount > 1 ? "s" : ""}</span>
+            {isVoting && data && (
+              <div className="pgrid-vote-info">
+                <span className="pgrid-vote-count">{data.count}</span>
+                {data.voters.length > 0 && (
+                  <span className="pgrid-vote-names">
+                    {data.voters.join(", ")}
+                  </span>
+                )}
+              </div>
             )}
+            {votedByMe && <div className="pgrid-my-vote-marker">YOUR VOTE</div>}
           </div>
         );
       })}

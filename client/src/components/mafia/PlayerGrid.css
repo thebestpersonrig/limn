@@ -1,25 +1,38 @@
 .pgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
+}
+
+.pgrid-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #444;
+  padding: 0 4px 4px;
 }
 
 .pgrid-tile {
   background: #1a1a24;
   border: 1px solid #2a2a3a;
   border-radius: 12px;
-  padding: 14px 10px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  transition: border-color 0.15s, transform 0.1s, opacity 0.2s;
+  gap: 10px;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.2s, background 0.15s;
   user-select: none;
+  position: relative;
 }
 
 .pgrid-tile.dead {
   opacity: 0.4;
+}
+
+.pgrid-tile.is-me {
+  border-color: #333;
 }
 
 .pgrid-tile.votable {
@@ -28,7 +41,8 @@
 }
 .pgrid-tile.votable:hover {
   border-color: #dc2626;
-  transform: translateY(-2px);
+  background: #1c0a0a;
+  transform: translateX(4px);
 }
 
 .pgrid-tile.voted-by-me {
@@ -37,43 +51,100 @@
 }
 
 .pgrid-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #2a2a3a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
+  flex-shrink: 0;
 }
 .pgrid-avatar[data-dead="true"] {
   background: #1a1a1a;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .pgrid-name {
-  font-size: 12px;
+  font-size: 13px;
   color: #ccc;
   font-weight: 500;
-  text-align: center;
+  flex: 1;
   word-break: break-word;
 }
-.pgrid-name.is-me { color: #fff; font-weight: 700; }
+.pgrid-tile.is-me .pgrid-name { color: #fff; font-weight: 700; }
 
 .pgrid-role-tag {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Vote info */
+.pgrid-vote-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .pgrid-vote-count {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #dc2626;
   background: #1c0a0a;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pgrid-vote-names {
+  font-size: 10px;
+  color: #666;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pgrid-my-vote-marker {
+  position: absolute;
+  top: -1px;
+  right: 10px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Mobile: switch to grid on small screens */
+@media (max-width: 700px) {
+  .pgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 6px;
+  }
+  .pgrid-section-label {
+    grid-column: 1 / -1;
+  }
+  .pgrid-tile {
+    flex-direction: column;
+    text-align: center;
+    padding: 10px 8px;
+    gap: 4px;
+  }
+  .pgrid-vote-info { margin-left: 0; }
+  .pgrid-vote-names { display: none; }
 }

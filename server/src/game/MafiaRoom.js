@@ -11,7 +11,7 @@ export class MafiaRoom {
   constructor(code, io) {
     this.code = code;
     this.io = io;
-    this.players = new Map();       // id → MafiaPlayer
+    this.players = new Map();       // id -> MafiaPlayer
     this.phase = "lobby";           // lobby | roleReveal | day | vote | elimResult | night | nightResult | gameEnd
     this.day = 0;
     this.timeLeft = 0;
@@ -22,12 +22,12 @@ export class MafiaRoom {
     this.dayDuration = 90;
 
     // Night action tracking
-    this.mafiaVotes = new Map();    // mafiaId → targetId
+    this.mafiaVotes = new Map();    // mafiaId -> targetId
     this.detectiveTarget = null;
     this.doctorTarget = null;
   }
 
-  // ── Player lifecycle ──────────────────────────────────
+  // -- Player lifecycle --
   addPlayer(player) {
     this.players.set(player.id, player);
     this.broadcast("mafia-room-state", this.getRoomState());
@@ -41,11 +41,9 @@ export class MafiaRoom {
     this.broadcast("mafia-player-left", { playerId: socketId, name: player.name });
 
     if (this.phase !== "lobby" && this.phase !== "gameEnd") {
-      // If a player leaves mid-game, mark them dead
       player.isAlive = false;
       this.broadcast("mafia-room-state", this.getRoomState());
 
-      // Check if their departure ends the game
       const winner = this.checkWin();
       if (winner) this.endGame(winner);
     }
@@ -53,11 +51,10 @@ export class MafiaRoom {
 
   isEmpty() { return this.players.size === 0; }
 
-  // ── Start game ────────────────────────────────────────
+  // -- Start game --
   startGame(config = {}) {
     if (this.players.size < 4) return { error: "Need at least 4 players." };
 
-    // Apply config
     if (config.mafiaCount) this.roleConfig.mafiaCount = config.mafiaCount;
     if (config.detective !== undefined) this.roleConfig.detective = config.detective;
     if (config.doctor !== undefined) this.roleConfig.doctor = config.doctor;
@@ -86,7 +83,6 @@ export class MafiaRoom {
       this.players.get(ids[idx]).role = "civilian";
     }
 
-    // Build mafia team info (names + ids)
     const mafiaTeam = mafiaIds.map(id => ({
       id,
       name: this.players.get(id).name,
@@ -104,27 +100,33 @@ export class MafiaRoom {
     this.broadcast("mafia-phase", {
       phase: "roleReveal",
       day: 0,
-      alivePlayers: this.getAlivePlayers(),
+      players: this.getAllPlayers(),
     });
 
-    // Transition to day after 5 seconds
     setTimeout(() => this.startDay(), 5000);
   }
 
-  // ── Day phase ─────────────────────────────────────────
+  // -- Day phase --
   startDay() {
     this.day++;
     this.phase = "day";
     this.timeLeft = this.dayDuration;
 
-    // Reset votes
     for (const p of this.players.values()) p.votedFor = null;
 
     this.broadcast("mafia-phase", {
       phase: "day",
       day: this.day,
       timeLeft: this.timeLeft,
-      alivePlayers: this.getAlivePlayers(),
+      players: this.getAllPlayers(),
+    });
+
+    // System message in chat
+    this.broadcast("mafia-day-message", {
+      system: true,
+      text: this.day === 1
+        ? "The town wakes up. Discuss who you think the Mafia might be."
+        : "A new day begins. Who is suspicious?",
     });
 
     this.startTimer(() => this.startVote());
@@ -135,7 +137,6 @@ export class MafiaRoom {
     const player = this.players.get(socketId);
     if (!player || !player.isAlive || !text.trim()) return;
 
-    // 1-second slowmode
     const now = Date.now();
     if (now - player.lastChatTime < CHAT_SLOWMODE_MS) return;
     player.lastChatTime = now;
@@ -147,7 +148,7 @@ export class MafiaRoom {
     });
   }
 
-  // ── Vote phase ────────────────────────────────────────
+  // -- Vote phase --
   startVote() {
     this.stopTimer();
     this.phase = "vote";
@@ -159,7 +160,12 @@ export class MafiaRoom {
       phase: "vote",
       day: this.day,
       timeLeft: this.timeLeft,
-      alivePlayers: this.getAlivePlayers(),
+      players: this.getAllPlayers(),
+    });
+
+    this.broadcast("mafia-day-message", {
+      system: true,
+      text: "Voting has begun! Click a player to vote them out.",
     });
 
     this.startTimer(() => this.resolveVote());
@@ -171,17 +177,29 @@ export class MafiaRoom {
     const target = this.players.get(targetId);
     if (!voter || !voter.isAlive) return;
     if (!target || !target.isAlive) return;
-    if (voterId === targetId) return; // can't vote for yourself
+    if (voterId === targetId) return;
 
+    const previousVote = voter.votedFor;
     voter.votedFor = targetId;
 
-    this.broadcast("mafia-vote-update", { votes: this.getVoteTally() });
+    // Broadcast vote with voter name for transparency
+    this.broadcast("mafia-vote-update", {
+      votes: this.getVoteTally(),
+      latestVote: {
+        voterId,
+        voterName: voter.name,
+        targetId,
+        targetName: target.name,
+        changed: previousVote !== null,
+      },
+    });
 
     // Check if all alive players have voted
     const alive = [...this.players.values()].filter(p => p.isAlive);
     if (alive.every(p => p.votedFor !== null)) {
       this.stopTimer();
-      this.resolveVote();
+      // Small delay so players see the final vote
+      setTimeout(() => this.resolveVote(), 1500);
     }
   }
 
@@ -189,7 +207,6 @@ export class MafiaRoom {
     this.stopTimer();
     this.phase = "elimResult";
 
-    // Count votes
     const counts = new Map();
     for (const p of this.players.values()) {
       if (p.isAlive && p.votedFor) {
@@ -200,7 +217,6 @@ export class MafiaRoom {
     let eliminated = null;
     if (counts.size > 0) {
       const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-      // Tie check: if top two have same count, no elimination
       if (sorted.length === 1 || sorted[0][1] > sorted[1][1]) {
         const targetId = sorted[0][0];
         const target = this.players.get(targetId);
@@ -211,9 +227,11 @@ export class MafiaRoom {
       }
     }
 
-    this.broadcast("mafia-elim-result", { eliminated });
+    this.broadcast("mafia-elim-result", {
+      eliminated,
+      players: this.getAllPlayers(),
+    });
 
-    // Check win after elimination
     const winner = this.checkWin();
     if (winner) {
       setTimeout(() => this.endGame(winner), 4000);
@@ -222,12 +240,11 @@ export class MafiaRoom {
     }
   }
 
-  // ── Night phase ───────────────────────────────────────
+  // -- Night phase --
   startNight() {
     this.phase = "night";
     this.timeLeft = 30;
 
-    // Reset night actions
     this.mafiaVotes.clear();
     this.detectiveTarget = null;
     this.doctorTarget = null;
@@ -237,7 +254,7 @@ export class MafiaRoom {
       phase: "night",
       day: this.day,
       timeLeft: this.timeLeft,
-      alivePlayers: this.getAlivePlayers(),
+      players: this.getAllPlayers(),
     });
 
     this.startTimer(() => this.resolveNight());
@@ -249,7 +266,6 @@ export class MafiaRoom {
     if (!player || !player.isAlive || player.role !== "mafia") return;
     if (!text.trim()) return;
 
-    // Send only to alive Mafia members
     for (const p of this.players.values()) {
       if (p.role === "mafia" && p.isAlive) {
         this.io.to(p.id).emit("mafia-night-message", {
@@ -271,7 +287,6 @@ export class MafiaRoom {
 
     if (player.role === "mafia") {
       this.mafiaVotes.set(socketId, targetId);
-      // Notify other mafia of this vote
       for (const p of this.players.values()) {
         if (p.role === "mafia" && p.isAlive) {
           this.io.to(p.id).emit("mafia-night-vote-update", {
@@ -281,7 +296,6 @@ export class MafiaRoom {
       }
     } else if (player.role === "detective") {
       this.detectiveTarget = targetId;
-      // Immediately reveal result to detective
       const isMafia = target.role === "mafia";
       this.io.to(socketId).emit("mafia-detective-result", {
         targetId,
@@ -292,10 +306,7 @@ export class MafiaRoom {
       this.doctorTarget = targetId;
     }
 
-    // Confirm action to the player
     this.io.to(socketId).emit("mafia-action-confirmed", { targetId });
-
-    // Check if all roles with night actions have acted
     this.checkNightComplete();
   }
 
@@ -318,7 +329,6 @@ export class MafiaRoom {
     this.stopTimer();
     this.phase = "nightResult";
 
-    // Determine mafia kill target (most-voted among mafia, or first vote if tie)
     const killCounts = new Map();
     for (const tid of this.mafiaVotes.values()) {
       killCounts.set(tid, (killCounts.get(tid) || 0) + 1);
@@ -330,7 +340,6 @@ export class MafiaRoom {
       if (count > maxVotes) { maxVotes = count; killTarget = tid; }
     }
 
-    // Doctor save check
     const saved = this.doctorTarget === killTarget;
 
     let killed = null;
@@ -342,7 +351,11 @@ export class MafiaRoom {
       }
     }
 
-    this.broadcast("mafia-night-result", { killed, saved: saved && killTarget !== null });
+    this.broadcast("mafia-night-result", {
+      killed,
+      saved: saved && killTarget !== null,
+      players: this.getAllPlayers(),
+    });
 
     const winner = this.checkWin();
     if (winner) {
@@ -352,7 +365,7 @@ export class MafiaRoom {
     }
   }
 
-  // ── Win condition ─────────────────────────────────────
+  // -- Win condition --
   checkWin() {
     const alive = [...this.players.values()].filter(p => p.isAlive);
     const aliveMafia = alive.filter(p => p.role === "mafia").length;
@@ -366,12 +379,11 @@ export class MafiaRoom {
   endGame(winner) {
     this.stopTimer();
     this.phase = "gameEnd";
-    // Reveal all roles
     const players = [...this.players.values()].map(p => p.toJSON(true));
     this.broadcast("mafia-game-end", { winner, players });
   }
 
-  // ── Timer ─────────────────────────────────────────────
+  // -- Timer --
   startTimer(onExpire) {
     this.stopTimer();
     this.timer = setInterval(() => {
@@ -388,8 +400,12 @@ export class MafiaRoom {
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
   }
 
-  // ── Helpers ───────────────────────────────────────────
+  // -- Helpers --
   broadcast(event, data) { this.io.to(this.code).emit(event, data); }
+
+  getAllPlayers() {
+    return [...this.players.values()].map(p => p.toJSON(this.phase === "gameEnd"));
+  }
 
   getAlivePlayers() {
     return [...this.players.values()]
@@ -401,7 +417,11 @@ export class MafiaRoom {
     const votes = [];
     for (const p of this.players.values()) {
       if (p.isAlive && p.votedFor) {
-        votes.push({ voterId: p.id, targetId: p.votedFor });
+        votes.push({
+          voterId: p.id,
+          voterName: p.name,
+          targetId: p.votedFor,
+        });
       }
     }
     return votes;

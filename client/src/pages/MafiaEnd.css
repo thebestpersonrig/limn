@@ -11,16 +11,22 @@
   background: #1a1a24;
   border: 1px solid #2a2a3a;
   border-radius: 20px;
-  width: 440px;
+  width: 460px;
   max-width: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: mendSlideUp 0.5s ease;
 }
 
-/* ── Banner ── */
+@keyframes mendSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Banner -- */
 .mend-banner {
-  padding: 32px 24px;
+  padding: 36px 24px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -29,33 +35,77 @@
 .mend-banner.mafia { background: linear-gradient(180deg, #450a0a 0%, #1a1a24 100%); }
 .mend-banner.town  { background: linear-gradient(180deg, #052e16 0%, #1a1a24 100%); }
 
-.mend-banner-icon { font-size: 44px; }
+.mend-banner-icon {
+  font-size: 52px;
+  animation: mendIconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mendIconBounce {
+  from { transform: scale(0) rotate(-15deg); }
+  to   { transform: scale(1) rotate(0); }
+}
+
 .mend-banner-text {
   font-family: 'Georgia', serif;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
   margin: 0;
 }
 .mend-banner.mafia .mend-banner-text { color: #fca5a5; }
 .mend-banner.town  .mend-banner-text { color: #86efac; }
 
-/* ── Player list ── */
+.mend-banner-sub {
+  font-size: 13px;
+  color: #777;
+  margin: 0;
+  text-align: center;
+}
+
+/* -- Section label -- */
+.mend-section-label {
+  padding: 12px 20px 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #444;
+}
+
+/* -- Player list -- */
 .mend-player-list {
-  padding: 16px 20px;
+  padding: 10px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .mend-player {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 14px;
   background: #0f0f13;
   border-radius: 10px;
+  animation: mendPlayerIn 0.3s ease backwards;
 }
+.mend-player:nth-child(1) { animation-delay: 0.1s; }
+.mend-player:nth-child(2) { animation-delay: 0.15s; }
+.mend-player:nth-child(3) { animation-delay: 0.2s; }
+.mend-player:nth-child(4) { animation-delay: 0.25s; }
+.mend-player:nth-child(5) { animation-delay: 0.3s; }
+.mend-player:nth-child(6) { animation-delay: 0.35s; }
+
+@keyframes mendPlayerIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 .mend-player.dead { opacity: 0.5; }
+
+.mend-player-emoji {
+  font-size: 16px;
+  flex-shrink: 0;
+}
 
 .mend-player-name {
   flex: 1;
@@ -77,10 +127,13 @@
   min-width: 70px;
   text-align: right;
 }
+.mend-player-status.alive {
+  color: #4ade80;
+}
 
-/* ── Actions ── */
+/* -- Actions -- */
 .mend-actions {
-  padding: 16px 20px 24px;
+  padding: 12px 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -93,7 +146,7 @@
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
 .mend-btn-primary {
@@ -101,7 +154,7 @@
   color: #fff;
   border: none;
 }
-.mend-btn-primary:hover { opacity: 0.9; }
+.mend-btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
 
 .mend-btn-ghost {
   background: transparent;
