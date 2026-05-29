@@ -4,10 +4,12 @@ import { MafiaRoom } from "../game/MafiaRoom.js";
 import { MafiaPlayer } from "../game/MafiaPlayer.js";
 import { MonopolyRoom } from "../game/MonopolyRoom.js";
 import { MonopolyPlayer } from "../game/MonopolyPlayer.js";
+import { KartArena } from "../game/KartArena.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
 const monopolyRooms = new Map();
+const kartRooms = new Map();
 
 function generateCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -27,7 +29,7 @@ export function registerHandlers(io) {
 
     socket.on("create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code)) code = generateCode();
       const room = new GameRoom(code, io);
       rooms.set(code, room);
       joinRoom(socket, room, name || "Player");
@@ -138,6 +140,14 @@ export function registerHandlers(io) {
         monoRoom.removePlayer(socket.id);
         if (monoRoom.isEmpty()) monopolyRooms.delete(currentMonopolyCode);
       }
+      const kartRoom = kartRooms.get(currentKartCode);
+      if (kartRoom) {
+        kartRoom.removePlayer(socket.id);
+        if (kartRoom.isEmpty()) {
+          kartRoom.stop();
+          kartRooms.delete(currentKartCode);
+        }
+      }
     }));
 
     function joinRoom(socket, room, name) {
@@ -157,7 +167,7 @@ export function registerHandlers(io) {
 
     socket.on("mafia-create-room", safe(({ name, roleConfig }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code)) code = generateCode();
       const room = new MafiaRoom(code, io);
       if (roleConfig) {
         if (roleConfig.mafiaCount) room.roleConfig.mafiaCount = roleConfig.mafiaCount;
@@ -224,7 +234,7 @@ export function registerHandlers(io) {
 
     socket.on("monopoly-create-room", safe(({ name, settings }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code)) code = generateCode();
       const room = new MonopolyRoom(code, io);
       if (settings) {
         if (settings.startingMoney) room.settings.startingMoney = settings.startingMoney;
@@ -345,6 +355,69 @@ export function registerHandlers(io) {
       const player = new MonopolyPlayer(sock.id, name);
       room.addPlayer(player);
       sock.emit("monopoly-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    // -- Kart Clash handlers --
+    let currentKartCode = null;
+
+    socket.on("kart-create-room", safe(({ name }) => {
+      let code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code)) code = generateCode();
+      const room = new KartArena(code, io);
+      kartRooms.set(code, room);
+      joinKartRoom(socket, room, name || "Racer");
+    }));
+
+    socket.on("kart-join-room", safe(({ code, name }) => {
+      if (!code) return socket.emit("kart-error", { message: "Invalid room code." });
+      const room = kartRooms.get(code.toUpperCase());
+      if (!room) return socket.emit("kart-error", { message: "Room not found." });
+      joinKartRoom(socket, room, name || "Racer");
+    }));
+
+    socket.on("kart-rejoin", safe(({ roomCode, name }) => {
+      const room = kartRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("kart-rejoin-failed");
+      joinKartRoom(socket, room, name || "Racer", "kart-rejoined");
+    }));
+
+    socket.on("kart-input", safe((input) => {
+      const room = kartRooms.get(currentKartCode);
+      if (room) room.setInput(socket.id, input);
+    }));
+
+    socket.on("kart-ping", safe((_sentAt, callback) => {
+      if (typeof callback === "function") callback(Date.now());
+    }));
+
+    socket.on("kart-leave", safe(() => {
+      const room = kartRooms.get(currentKartCode);
+      if (!room) return;
+      socket.leave(room.channel);
+      room.removePlayer(socket.id);
+      if (room.isEmpty()) {
+        room.stop();
+        kartRooms.delete(currentKartCode);
+      }
+      currentKartCode = null;
+    }));
+
+    function joinKartRoom(sock, room, name, eventName = "kart-joined-room") {
+      if (currentKartCode && currentKartCode !== room.code) {
+        const oldRoom = kartRooms.get(currentKartCode);
+        if (oldRoom) oldRoom.removePlayer(sock.id);
+        sock.leave(`kart-${currentKartCode}`);
+      }
+      currentKartCode = room.code;
+      sock.join(room.channel);
+      room.addPlayer(sock.id, name);
+      sock.emit(eventName, {
+        code: room.code,
+        roomState: room.getRoomState(),
+        playerId: sock.id,
+        snapshot: room.snapshot(),
+      });
+      room.broadcast();
     }
   });
 }

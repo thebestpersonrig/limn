@@ -33,6 +33,16 @@ const GAMES = [
     color: "#dc2626",
     available: true,
   },
+  {
+    id: "kart",
+    name: "Kart Clash",
+    tagline: "Arena Combat",
+    description: "Drift, boost, grab weapons, and battle friends in a colorful 3D kart arena.",
+    players: "2+ players",
+    emoji: "KC",
+    color: "#22d3ee",
+    available: true,
+  },
 ];
 
 function NamePrompt({ title, defaultValue = "", onConfirm }) {

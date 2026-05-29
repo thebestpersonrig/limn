@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Hub from "./pages/Hub";
 import Home from "./pages/Home";
@@ -15,6 +15,9 @@ import MonopolyHome from "./pages/MonopolyHome";
 import MonopolyRoomPage from "./pages/MonopolyRoomPage";
 import { getSocket, saveSession, clearSession, getSession, getSavedName, savePlayerName } from "./hooks/useSocket";
 import "./App.css";
+
+const KartHome = lazy(() => import("./pages/KartHome"));
+const KartRoomPage = lazy(() => import("./pages/KartRoomPage"));
 
 export default function App() {
   const navigate = useNavigate();
@@ -57,12 +60,14 @@ export default function App() {
       }
       const session = getSession();
       const path = locationRef.current.pathname;
-      if (!session || path === "/" || path === "/limn" || path === "/mafia" || path === "/monopoly") return;
+      if (!session || path === "/" || path === "/limn" || path === "/mafia" || path === "/monopoly" || path === "/kart") return;
 
       if (session.gameType === "mafia") {
         s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
       } else if (session.gameType === "monopoly") {
         s.emit("monopoly-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else if (session.gameType === "kart") {
+        s.emit("kart-rejoin", { roomCode: session.roomCode, name: session.name });
       } else {
         s.emit("rejoin", session);
       }
@@ -72,6 +77,7 @@ export default function App() {
     function onRejoinFailed() { clearSession(); navigate("/"); }
     function onMafiaRejoinFailed() { clearSession(); navigate("/"); }
     function onMonopolyRejoinFailed() { clearSession(); navigate("/"); }
+    function onKartRejoinFailed() { clearSession(); navigate("/"); }
 
     s.on("round-start",              onRoundStart);
     s.on("game-end",                 onGameEndEvent);
@@ -80,6 +86,7 @@ export default function App() {
     s.on("rejoin-failed",            onRejoinFailed);
     s.on("mafia-rejoin-failed",      onMafiaRejoinFailed);
     s.on("monopoly-rejoin-failed",   onMonopolyRejoinFailed);
+    s.on("kart-rejoin-failed",       onKartRejoinFailed);
     return () => {
       s.off("round-start",            onRoundStart);
       s.off("game-end",               onGameEndEvent);
@@ -88,6 +95,7 @@ export default function App() {
       s.off("rejoin-failed",          onRejoinFailed);
       s.off("mafia-rejoin-failed",    onMafiaRejoinFailed);
       s.off("monopoly-rejoin-failed", onMonopolyRejoinFailed);
+      s.off("kart-rejoin-failed",     onKartRejoinFailed);
     };
   }, [navigate]);
 
@@ -153,6 +161,8 @@ export default function App() {
         s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
       } else if (session.gameType === "monopoly") {
         s.emit("monopoly-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else if (session.gameType === "kart") {
+        s.emit("kart-rejoin", { roomCode: session.roomCode, name: session.name });
       } else {
         s.emit("rejoin", session);
       }
@@ -173,10 +183,16 @@ export default function App() {
       setGamePhase("lobby");
       navigate(`/monopoly/${code}`, { replace: true });
     }
+    function onKartRejoined({ code, roomState, playerId, snapshot }) {
+      setSessionData({ code, roomState, playerName: session.name, playerId, snapshot });
+      setGamePhase("game");
+      navigate(`/kart/${code}`, { replace: true });
+    }
 
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
     s.once("monopoly-rejoined", onMonopolyRejoined);
+    s.once("kart-rejoined", onKartRejoined);
     if (s.connected) { doRejoin(); }
     else { s.connect(); s.once("connect", doRejoin); }
 
@@ -184,6 +200,7 @@ export default function App() {
       s.off("rejoined", onRejoined);
       s.off("mafia-rejoined", onMafiaRejoined);
       s.off("monopoly-rejoined", onMonopolyRejoined);
+      s.off("kart-rejoined", onKartRejoined);
     };
   }, [navigate]);
 
@@ -197,6 +214,7 @@ export default function App() {
     if (id === "limn")     navigate("/limn");
     if (id === "mafia")    navigate("/mafia");
     if (id === "monopoly") navigate("/monopoly");
+    if (id === "kart")     navigate("/kart");
   }
 
   function handleJoined({ code, roomState }) {
@@ -218,6 +236,13 @@ export default function App() {
     setGamePhase("lobby");
     saveSession(playerName, code, "monopoly");
     navigate(`/monopoly/${code}`);
+  }
+
+  function handleKartJoined({ code, roomState, playerId, snapshot }) {
+    setSessionData({ code, roomState, playerName, playerId, snapshot });
+    setGamePhase("game");
+    saveSession(playerName, code, "kart");
+    navigate(`/kart/${code}`);
   }
 
   function handleBackToHub() {
@@ -259,7 +284,7 @@ export default function App() {
   }
 
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia|monopoly)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly|kart)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -354,6 +379,32 @@ export default function App() {
               onPlayAgain={handleMonopolyPlayAgain}
               onBackToHub={handleBackToHub}
             />
+          }
+        />
+
+        <Route
+          path="/kart"
+          element={
+            <Suspense fallback={<div className="route-loading">Loading Kart Clash...</div>}>
+              <KartHome
+                playerName={playerName}
+                onJoined={handleKartJoined}
+                onBack={() => navigate("/")}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/kart/:code"
+          element={
+            <Suspense fallback={<div className="route-loading">Loading Kart Clash...</div>}>
+              <KartRoomPage
+                sessionData={sessionData}
+                playerName={playerName}
+                onJoined={handleKartJoined}
+                onBackToHub={handleBackToHub}
+              />
+            </Suspense>
           }
         />
 
