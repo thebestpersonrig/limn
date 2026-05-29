@@ -13,6 +13,10 @@ const DICE_DOTS = {
 };
 
 const CORNER_ICONS = { 0: "→", 10: "🔒", 20: "🅿️", 30: "🚔" };
+const GROUP_NAMES = {
+  brown: "Brown", lightblue: "Light Blue", pink: "Pink", orange: "Orange",
+  red: "Red", yellow: "Yellow", green: "Green", darkblue: "Dark Blue", other: "Railroads & Utilities",
+};
 
 function DiceFace({ value, rolling }) {
   const dots = DICE_DOTS[value] || [];
@@ -48,6 +52,7 @@ export default function MonopolyGame() {
   const [cardPopup, setCardPopup] = useState(null);
   const rollTimerRef = useRef(null);
   const announceTimerRef = useRef(null);
+  const pendingCardRef = useRef(null);
   const gameRef = useRef(null);
   gameRef.current = game;
 
@@ -76,12 +81,25 @@ export default function MonopolyGame() {
       rollTimerRef.current = setTimeout(() => {
         setRolling(false);
         setRollAnnounce({ total, name: rollerName, isMe, doubles });
-        announceTimerRef.current = setTimeout(() => setRollAnnounce(null), 2000);
+        announceTimerRef.current = setTimeout(() => {
+          setRollAnnounce(null);
+          // Flush any card popup that arrived during the announcement
+          if (pendingCardRef.current) {
+            setCardPopup(pendingCardRef.current);
+            pendingCardRef.current = null;
+          }
+        }, 2000);
       }, 800);
     }
     function onCard(data) {
       updateState(data);
-      setCardPopup({ text: data.card?.text, deckType: data.deckType });
+      const card = { text: data.card?.text, deckType: data.deckType };
+      // Queue card behind roll announcement
+      if (rollTimerRef.current || announceTimerRef.current) {
+        pendingCardRef.current = card;
+      } else {
+        setCardPopup(card);
+      }
     }
     function onTradeOffer(data) {
       updateState(data);
@@ -113,7 +131,7 @@ export default function MonopolyGame() {
       "monopoly-auction-start", "monopoly-auction-bid", "monopoly-auction-update",
       "monopoly-auction-end", "monopoly-build-result", "monopoly-mortgage-result",
       "monopoly-jail-update", "monopoly-tax-paid", "monopoly-bankruptcy",
-      "monopoly-turn-state", "monopoly-trade-pending",
+      "monopoly-turn-state", "monopoly-trade-pending", "monopoly-debt",
     ];
     stateEvents.forEach(ev => socket.on(ev, updateState));
 
@@ -581,6 +599,7 @@ export default function MonopolyGame() {
       {myPropCount > 0 && (
         <button className="mpoly-myprops-fab" onClick={() => setModal(modal === "myprops" ? null : "myprops")}>
           <span className="mpoly-fab-icon">🏠</span>
+          <span className="mpoly-fab-label">My Properties</span>
           <span className="mpoly-fab-count">{myPropCount}</span>
         </button>
       )}
@@ -689,6 +708,60 @@ export default function MonopolyGame() {
         </div>
       )}
 
+      {/* Debt Resolution */}
+      {game.debtInfo && game.debtInfo.playerId === myId && game.turnState === "inDebt" && (
+        <div className="mpoly-overlay">
+          <div className="mpoly-modal">
+            <div className="mpoly-modal-head mpoly-debt-head">
+              <span>You Owe ${game.debtInfo.amount}</span>
+            </div>
+            <div className="mpoly-debt-info">
+              <div className="mpoly-debt-bal">Current balance: <strong>${me?.money || 0}</strong></div>
+              <p className="mpoly-debt-msg">Sell buildings or mortgage properties to raise funds. If you can't cover the debt, you'll go bankrupt.</p>
+            </div>
+            <div className="mpoly-debt-actions">
+              {me?.properties?.filter(idx => (game.propertyHouses[idx] || 0) > 0).length > 0 && (
+                <div className="mpoly-debt-section">
+                  <div className="mpoly-debt-section-title">Sell Buildings</div>
+                  {me.properties.filter(idx => (game.propertyHouses[idx] || 0) > 0).map(idx => {
+                    const sp = BOARD[idx];
+                    const h = game.propertyHouses[idx] || 0;
+                    return (
+                      <div key={idx} className="mpoly-list-row">
+                        <span className="mpoly-list-color" style={{ background: GROUP_COLORS[sp.group] }} />
+                        <span className="mpoly-list-name">{sp.short}</span>
+                        <span className="mpoly-list-detail">{h >= 5 ? "Hotel" : `${h}h`}</span>
+                        <span className="mpoly-list-cost">+${Math.floor(sp.houseCost / 2)}</span>
+                        <button className="mpoly-btn mpoly-btn--sm" onClick={() => sellHouse(idx)}>Sell</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {me?.properties?.filter(idx => !game.mortgagedProps.includes(idx) && (game.propertyHouses[idx] || 0) === 0).length > 0 && (
+                <div className="mpoly-debt-section">
+                  <div className="mpoly-debt-section-title">Mortgage Properties</div>
+                  {me.properties.filter(idx => !game.mortgagedProps.includes(idx) && (game.propertyHouses[idx] || 0) === 0).map(idx => {
+                    const sp = BOARD[idx];
+                    return (
+                      <div key={idx} className="mpoly-list-row">
+                        {sp.group ? <span className="mpoly-list-color" style={{ background: GROUP_COLORS[sp.group] }} /> : <span className="mpoly-list-color" style={{ background: "#445" }} />}
+                        <span className="mpoly-list-name">{sp.short || sp.name}</span>
+                        <span className="mpoly-list-cost">+${Math.floor(sp.price / 2)}</span>
+                        <button className="mpoly-btn mpoly-btn--sm" onClick={() => mortgageProp(idx)}>Mortgage</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="mpoly-modal-btns">
+              <button className="mpoly-btn mpoly-btn--decline" onClick={() => socket.emit("monopoly-debt-give-up")}>Declare Bankruptcy</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Incoming Trade */}
       {incomingTrade && (
         <div className="mpoly-overlay">
@@ -743,7 +816,7 @@ export default function MonopolyGame() {
                     <div className="mpoly-myprops-ghdr">
                       <span className="mpoly-myprops-gswatch" style={{ background: g.color }} />
                       <span className="mpoly-myprops-glabel">
-                        {g.group === "other" ? "Railroads & Utilities" : g.group.charAt(0).toUpperCase() + g.group.slice(1)}
+                        {GROUP_NAMES[g.group] || g.group}
                       </span>
                       {g.total > 0 && (
                         <span className={`mpoly-myprops-gcount${g.complete ? " complete" : ""}`}>
@@ -752,17 +825,22 @@ export default function MonopolyGame() {
                       )}
                       {g.complete && <span className="mpoly-myprops-mono">MONOPOLY</span>}
                     </div>
-                    {g.props.map(p => (
-                      <div key={p.idx} className={`mpoly-myprops-prop${p.mortgaged ? " mortgaged" : ""}`}>
-                        <span className="mpoly-myprops-pname">{p.name}</span>
-                        {p.houses > 0 && (
-                          <span className="mpoly-myprops-phouses">
-                            {p.houses >= 5 ? "Hotel" : `${p.houses}h`}
-                          </span>
-                        )}
-                        {p.mortgaged && <span className="mpoly-myprops-pmort">MORT</span>}
-                      </div>
-                    ))}
+                    <div className="mpoly-myprops-cards">
+                      {g.props.map(p => (
+                        <div key={p.idx} className={`mpoly-myprops-card${p.mortgaged ? " mpoly-myprops-card--mort" : ""}`}>
+                          <div className="mpoly-myprops-card-bar" style={{ background: g.color }} />
+                          <div className="mpoly-myprops-card-body">
+                            <span className="mpoly-myprops-card-name">{p.name}</span>
+                            {p.houses > 0 && (
+                              <span className="mpoly-myprops-card-houses">
+                                {p.houses >= 5 ? "🏨" : "🏠".repeat(p.houses)}
+                              </span>
+                            )}
+                            {p.mortgaged && <span className="mpoly-myprops-card-mort">MORTGAGED</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -342,6 +342,11 @@ export function registerHandlers(io) {
       if (room) room.handleEndTurn(socket.id);
     }));
 
+    socket.on("monopoly-debt-give-up", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleDebtGiveUp(socket.id);
+    }));
+
     socket.on("monopoly-get-state", safe(() => {
       const room = monopolyRooms.get(currentMonopolyCode);
       if (room && room.phase === "playing") {

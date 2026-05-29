@@ -560,6 +560,10 @@
   box-shadow: 0 4px 20px rgba(0,166,81,0.15);
 }
 .mpoly-fab-icon { font-size: 16px; }
+.mpoly-fab-label {
+  font-size: 12px;
+  color: #8a9;
+}
 .mpoly-fab-count {
   background: #00A651;
   color: white;
@@ -616,26 +620,44 @@
   border-radius: 4px;
   letter-spacing: 1px;
 }
-.mpoly-myprops-prop {
+.mpoly-myprops-cards {
   display: flex;
-  align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }
-.mpoly-myprops-prop.mortgaged { opacity: 0.5; }
-.mpoly-myprops-pname {
-  font-size: 12px;
-  color: #99a;
-  flex: 1;
+.mpoly-myprops-card {
+  width: 72px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #12121a;
+  border: 1px solid #2a2a3a;
+  transition: border-color 0.15s;
 }
-.mpoly-myprops-phouses {
-  font-size: 10px;
-  color: #2ecc71;
-  font-weight: 700;
+.mpoly-myprops-card:hover { border-color: #4a4a5a; }
+.mpoly-myprops-card--mort { opacity: 0.45; }
+.mpoly-myprops-card-bar {
+  height: 6px;
+  width: 100%;
 }
-.mpoly-myprops-pmort {
-  font-size: 8px;
+.mpoly-myprops-card-body {
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mpoly-myprops-card-name {
+  font-size: 9px;
+  font-weight: 600;
+  color: #bbc;
+  line-height: 1.2;
+}
+.mpoly-myprops-card-houses {
+  font-size: 9px;
+  line-height: 1;
+}
+.mpoly-myprops-card-mort {
+  font-size: 7px;
   font-weight: 800;
   color: #e74c3c;
   letter-spacing: 0.5px;
@@ -988,6 +1010,43 @@
   font-size: 11px;
   color: #556;
 }
+/* ── Debt Resolution ─────────────────────────────── */
+.mpoly-debt-head {
+  color: #e74c3c !important;
+}
+.mpoly-debt-info {
+  margin-bottom: 12px;
+}
+.mpoly-debt-bal {
+  font-size: 14px;
+  color: #aab;
+  margin-bottom: 6px;
+}
+.mpoly-debt-bal strong {
+  color: #e74c3c;
+  font-size: 16px;
+}
+.mpoly-debt-msg {
+  font-size: 12px;
+  color: #667;
+  line-height: 1.5;
+  margin: 0;
+}
+.mpoly-debt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.mpoly-debt-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6a7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
 .mpoly-auction-passed {
   font-size: 13px;
   color: #556;

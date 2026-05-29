@@ -20,9 +20,10 @@ export class MonopolyRoom {
     this.playerOrder = [];
     this.turnIndex = 0;
     this.currentPlayerId = null;
-    this.turnState = null; // waitingForRoll | jailDecision | buyPrompt | auctionPhase | actionPhase
+    this.turnState = null; // waitingForRoll | jailDecision | buyPrompt | auctionPhase | actionPhase | inDebt
     this.lastDice = [0, 0];
     this.doublesCount = 0;
+    this.debtInfo = null; // { playerId, creditorId, amount }
 
     this.propertyOwners = new Map(); // boardIndex → playerId
     this.propertyHouses = new Map(); // boardIndex → count (1-5)
@@ -640,7 +641,8 @@ export class MonopolyRoom {
   }
 
   handleSellBuilding(playerId, propertyIndex) {
-    if (playerId !== this.currentPlayerId) return;
+    const isInDebt = this.debtInfo?.playerId === playerId;
+    if (playerId !== this.currentPlayerId && !isInDebt) return;
     const player = this.players.get(playerId);
     const space = BOARD[propertyIndex];
     if (!space || space.type !== "property") return;
@@ -665,12 +667,15 @@ export class MonopolyRoom {
       playerId, propertyIndex, houses: currentHouses - 1,
       gameState: this.getGameState(),
     });
+
+    if (isInDebt) this.checkDebtResolved(playerId);
   }
 
   // ── Mortgage ──────────────────────────────────────────────
 
   handleMortgage(playerId, propertyIndex) {
-    if (playerId !== this.currentPlayerId) return;
+    const isInDebt = this.debtInfo?.playerId === playerId;
+    if (playerId !== this.currentPlayerId && !isInDebt) return;
     const player = this.players.get(playerId);
     const space = BOARD[propertyIndex];
     if (!space) return;
@@ -695,6 +700,8 @@ export class MonopolyRoom {
       playerId, propertyIndex, mortgaged: true,
       gameState: this.getGameState(),
     });
+
+    if (isInDebt) this.checkDebtResolved(playerId);
   }
 
   handleUnmortgage(playerId, propertyIndex) {
@@ -1046,10 +1053,45 @@ export class MonopolyRoom {
     const player = this.players.get(playerId);
     if (!player || player.isBankrupt) return;
 
-    // Player is in debt — in a full implementation they could sell/mortgage here
-    // For now, auto-bankrupt if money < 0
-    if (player.money < 0) {
+    if (player.money >= 0) return;
+
+    // Check if player has any assets to liquidate
+    const hasAssets = player.properties.some(idx => {
+      if (!this.mortgagedProps.has(idx)) return true;
+      if ((this.propertyHouses.get(idx) || 0) > 0) return true;
+      return false;
+    });
+
+    if (!hasAssets) {
       this.eliminatePlayer(playerId, creditorId);
+      return;
+    }
+
+    // Enter debt resolution — player can sell buildings / mortgage to raise funds
+    this.debtInfo = { playerId, creditorId, amount: -player.money };
+    this.turnState = "inDebt";
+    this.addLog(`${player.name} owes $${-player.money} — must sell buildings or mortgage properties!`);
+    this.broadcast("monopoly-debt", {
+      playerId, creditorId, amount: -player.money,
+      gameState: this.getGameState(),
+    });
+  }
+
+  handleDebtGiveUp(playerId) {
+    if (!this.debtInfo || this.debtInfo.playerId !== playerId) return;
+    this.eliminatePlayer(playerId, this.debtInfo.creditorId);
+    this.debtInfo = null;
+  }
+
+  checkDebtResolved(playerId) {
+    const player = this.players.get(playerId);
+    if (!player || !this.debtInfo || this.debtInfo.playerId !== playerId) return;
+
+    if (player.money >= 0) {
+      this.addLog(`${player.name} raised enough funds!`);
+      const creditorId = this.debtInfo.creditorId;
+      this.debtInfo = null;
+      this.goToActionPhase(playerId);
     }
   }
 
@@ -1238,6 +1280,7 @@ export class MonopolyRoom {
         timeLeft: this.auctionState.timeLeft,
       } : null,
       tradeState: this.tradeState,
+      debtInfo: this.debtInfo,
       log: this.log.slice(-50),
     };
   }
