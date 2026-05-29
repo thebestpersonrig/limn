@@ -29,6 +29,9 @@ export class MonopolyRoom {
     this.propertyHouses = new Map(); // boardIndex → count (1-5)
     this.mortgagedProps = new Set();
 
+    this.housesAvailable = 32;
+    this.hotelsAvailable = 12;
+
     this.chanceDeck = shuffleDeck(CHANCE_CARDS);
     this.communityDeck = shuffleDeck(COMMUNITY_CARDS);
     this.chanceIndex = 0;
@@ -624,6 +627,18 @@ export class MonopolyRoom {
       return;
     }
 
+    if (currentHouses === 4) {
+      if (this.hotelsAvailable <= 0) {
+        this.io.to(playerId).emit("monopoly-error", { message: "No hotels available." });
+        return;
+      }
+    } else {
+      if (this.housesAvailable <= 0) {
+        this.io.to(playerId).emit("monopoly-error", { message: "No houses available (housing shortage)." });
+        return;
+      }
+    }
+
     if (player.money < space.houseCost) {
       this.io.to(playerId).emit("monopoly-error", { message: "Not enough money." });
       return;
@@ -631,6 +646,13 @@ export class MonopolyRoom {
 
     player.money -= space.houseCost;
     this.propertyHouses.set(propertyIndex, currentHouses + 1);
+
+    if (currentHouses === 4) {
+      this.hotelsAvailable--;
+      this.housesAvailable += 4;
+    } else {
+      this.housesAvailable--;
+    }
 
     const level = currentHouses + 1 === 5 ? "a hotel" : `${currentHouses + 1} house(s)`;
     this.addLog(`${player.name} built on ${space.name} — now has ${level}.`);
@@ -657,6 +679,17 @@ export class MonopolyRoom {
     if (currentHouses < maxInGroup) {
       this.io.to(playerId).emit("monopoly-error", { message: "Sell evenly — sell from higher properties first." });
       return;
+    }
+
+    if (currentHouses === 5) {
+      if (this.housesAvailable < 4) {
+        this.io.to(playerId).emit("monopoly-error", { message: "Not enough houses to downgrade hotel." });
+        return;
+      }
+      this.hotelsAvailable++;
+      this.housesAvailable -= 4;
+    } else {
+      this.housesAvailable++;
     }
 
     player.money += Math.floor(space.houseCost / 2);
@@ -1120,6 +1153,9 @@ export class MonopolyRoom {
     } else {
       // Owed to bank — properties go back to unowned, buildings removed
       for (const idx of player.properties) {
+        const h = this.propertyHouses.get(idx) || 0;
+        if (h === 5) this.hotelsAvailable++;
+        else if (h > 0) this.housesAvailable += h;
         this.propertyOwners.delete(idx);
         this.propertyHouses.delete(idx);
         this.mortgagedProps.delete(idx);
@@ -1281,6 +1317,8 @@ export class MonopolyRoom {
       } : null,
       tradeState: this.tradeState,
       debtInfo: this.debtInfo,
+      housesAvailable: this.housesAvailable,
+      hotelsAvailable: this.hotelsAvailable,
       log: this.log.slice(-50),
     };
   }

@@ -18,6 +18,8 @@ const GROUP_NAMES = {
   red: "Red", yellow: "Yellow", green: "Green", darkblue: "Dark Blue", other: "Railroads & Utilities",
 };
 
+const PLAYER_AVATARS = ["🚗", "🎩", "🐕", "👢", "🚢", "⭐"];
+
 function DiceFace({ value, rolling }) {
   const dots = DICE_DOTS[value] || [];
   return (
@@ -27,6 +29,33 @@ function DiceFace({ value, rolling }) {
       ))}
     </div>
   );
+}
+
+function AnimatedMoney({ value }) {
+  const [display, setDisplay] = useState(value);
+  const prevRef = useRef(value);
+  const frameRef = useRef(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = value;
+    if (prev === value) return;
+    const diff = value - prev;
+    const duration = 600;
+    const start = performance.now();
+    cancelAnimationFrame(frameRef.current);
+    function animate(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(prev + diff * eased));
+      if (progress < 1) frameRef.current = requestAnimationFrame(animate);
+    }
+    frameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [value]);
+
+  return display;
 }
 
 let toastId = 0;
@@ -50,9 +79,14 @@ export default function MonopolyGame() {
   const [tradeRequestProps, setTradeRequestProps] = useState([]);
   const [tradeRequestMoney, setTradeRequestMoney] = useState(0);
   const [cardPopup, setCardPopup] = useState(null);
+  const [tokenPositions, setTokenPositions] = useState({});
+  const [landedSpace, setLandedSpace] = useState(null);
+  const [hoverRentSpace, setHoverRentSpace] = useState(null);
   const rollTimerRef = useRef(null);
   const announceTimerRef = useRef(null);
   const pendingCardRef = useRef(null);
+  const landedTimerRef = useRef(null);
+  const tokenAnimRef = useRef({});
   const gameRef = useRef(null);
   gameRef.current = game;
 
@@ -125,8 +159,34 @@ export default function MonopolyGame() {
     function onError({ message }) { setError(message); setTimeout(() => setError(""), 3000); }
     function onStateSync(data) { if (data.gameState) setGame(data.gameState); }
 
+    function onMove(data) {
+      if (data.gameState) setGame(data.gameState);
+      const { playerId, from, to } = data;
+      if (from !== undefined && to !== undefined && from !== to) {
+        const path = [];
+        let pos = from;
+        while (pos !== to) { pos = (pos + 1) % 40; path.push(pos); }
+        if (tokenAnimRef.current[playerId]) clearInterval(tokenAnimRef.current[playerId]);
+        setTokenPositions(prev => ({ ...prev, [playerId]: from }));
+        let step = 0;
+        tokenAnimRef.current[playerId] = setInterval(() => {
+          if (step >= path.length) {
+            clearInterval(tokenAnimRef.current[playerId]);
+            delete tokenAnimRef.current[playerId];
+            setTokenPositions(prev => { const n = { ...prev }; delete n[playerId]; return n; });
+            setLandedSpace(to);
+            clearTimeout(landedTimerRef.current);
+            landedTimerRef.current = setTimeout(() => setLandedSpace(null), 3000);
+            return;
+          }
+          setTokenPositions(prev => ({ ...prev, [playerId]: path[step] }));
+          step++;
+        }, 100);
+      }
+    }
+
     const stateEvents = [
-      "monopoly-game-start", "monopoly-turn-start", "monopoly-move",
+      "monopoly-game-start", "monopoly-turn-start",
       "monopoly-buy-prompt", "monopoly-rent-paid", "monopoly-buy-result",
       "monopoly-auction-start", "monopoly-auction-bid", "monopoly-auction-update",
       "monopoly-auction-end", "monopoly-build-result", "monopoly-mortgage-result",
@@ -136,6 +196,7 @@ export default function MonopolyGame() {
     stateEvents.forEach(ev => socket.on(ev, updateState));
 
     socket.on("monopoly-dice-result", onDice);
+    socket.on("monopoly-move", onMove);
     socket.on("monopoly-card-drawn", onCard);
     socket.on("monopoly-trade-offer", onTradeOffer);
     socket.on("monopoly-trade-result", onTradeResult);
@@ -150,6 +211,7 @@ export default function MonopolyGame() {
     return () => {
       stateEvents.forEach(ev => socket.off(ev, updateState));
       socket.off("monopoly-dice-result", onDice);
+      socket.off("monopoly-move", onMove);
       socket.off("monopoly-card-drawn", onCard);
       socket.off("monopoly-trade-offer", onTradeOffer);
       socket.off("monopoly-trade-result", onTradeResult);
@@ -160,6 +222,8 @@ export default function MonopolyGame() {
       socket.off("monopoly-state-sync", onStateSync);
       clearTimeout(rollTimerRef.current);
       clearTimeout(announceTimerRef.current);
+      clearTimeout(landedTimerRef.current);
+      Object.values(tokenAnimRef.current).forEach(clearInterval);
     };
   }, []);
 
@@ -174,7 +238,19 @@ export default function MonopolyGame() {
       <div className="mpoly">
         <div className="mpoly-loading">
           <div className="mpoly-loading-title">MONOPOLY</div>
-          <div className="mpoly-loading-dots"><span /><span /><span /></div>
+          <div className="mpoly-skeleton">
+            <div className="mpoly-skel-strip">
+              {[0,1,2,3].map(i => <div key={i} className="mpoly-skel-player" />)}
+            </div>
+            <div className="mpoly-skel-board">
+              <div className="mpoly-skel-center">
+                <div className="mpoly-skel-dice-row"><div className="mpoly-skel-die" /><div className="mpoly-skel-die" /></div>
+                <div className="mpoly-skel-text" />
+                <div className="mpoly-skel-btn" />
+              </div>
+            </div>
+          </div>
+          <div className="mpoly-loading-sub">Connecting to game...</div>
         </div>
       </div>
     );
@@ -310,6 +386,30 @@ export default function MonopolyGame() {
     return nw;
   }
 
+  function getCurrentRent(spaceIdx) {
+    const space = BOARD[spaceIdx];
+    if (!space) return null;
+    const owner = game.propertyOwners[spaceIdx];
+    if (!owner) return null;
+    if (game.mortgagedProps.includes(spaceIdx)) return { rent: 0, mortgaged: true };
+    if (space.type === "property" && space.rent) {
+      const houses = game.propertyHouses[spaceIdx] || 0;
+      if (houses > 0) return { rent: space.rent[houses], houses };
+      const groupProps = BOARD.filter(s => s.group === space.group).map(s => s.i);
+      const ownsAll = groupProps.every(i => game.propertyOwners[i] === owner);
+      return { rent: ownsAll ? space.rent[0] * 2 : space.rent[0], monopoly: ownsAll, houses: 0 };
+    }
+    if (space.type === "railroad") {
+      const owned = [5,15,25,35].filter(i => game.propertyOwners[i] === owner && !game.mortgagedProps.includes(i)).length;
+      return { rent: [25,50,100,200][owned - 1] || 25 };
+    }
+    if (space.type === "utility") {
+      const owned = [12,28].filter(i => game.propertyOwners[i] === owner && !game.mortgagedProps.includes(i)).length;
+      return { rent: owned === 2 ? "10× dice" : "4× dice", isUtility: true };
+    }
+    return null;
+  }
+
   function renderCorner(space) {
     const labels = { 0: ["COLLECT", "$200"], 10: ["JUST", "VISITING"], 20: ["FREE", "PARKING"], 30: ["GO TO", "JAIL"] };
     const l = labels[space.i] || [];
@@ -413,6 +513,15 @@ export default function MonopolyGame() {
 
   return (
     <div className="mpoly">
+      {/* Mobile blocker */}
+      <div className="mpoly-mobile-block">
+        <div className="mpoly-mobile-block-inner">
+          <span className="mpoly-mobile-block-icon">🖥️</span>
+          <h2 className="mpoly-mobile-block-title">Screen Too Small</h2>
+          <p className="mpoly-mobile-block-text">Monopoly requires a tablet or larger screen to play. Please switch to a bigger device.</p>
+        </div>
+      </div>
+
       {/* Toasts */}
       <div className="mpoly-toasts">
         {toasts.map(t => (
@@ -438,11 +547,11 @@ export default function MonopolyGame() {
           });
           return (
             <div key={pid} className={`mpoly-ps${isTurn ? " mpoly-ps--turn" : ""}${p.isBankrupt ? " mpoly-ps--bankrupt" : ""}${pid === myId ? " mpoly-ps--me" : ""}`}>
-              <div className="mpoly-ps-dot" style={{ background: PLAYER_COLORS[idx] }} />
+              <span className="mpoly-ps-avatar" style={{ borderColor: PLAYER_COLORS[idx] }}>{PLAYER_AVATARS[idx] || "🎲"}</span>
               <div className="mpoly-ps-info">
                 <span className="mpoly-ps-name">{p.name}{pid === myId ? " (you)" : ""}</span>
-                <span className="mpoly-ps-money">${p.money}</span>
-                <span className="mpoly-ps-nw">NW ${nw}</span>
+                <span className="mpoly-ps-money">$<AnimatedMoney value={p.money} /></span>
+                <span className="mpoly-ps-nw">NW $<AnimatedMoney value={nw} /></span>
               </div>
               <div className="mpoly-ps-meta">
                 {ownedGroups.length > 0 && (
@@ -475,15 +584,19 @@ export default function MonopolyGame() {
             const isMyProp = owner === myId;
             const playersHere = game.playerOrder.filter(pid => {
               const p = game.players[pid];
-              return p && !p.isBankrupt && p.position === space.i;
+              if (!p || p.isBankrupt) return false;
+              const displayPos = tokenPositions[pid] !== undefined ? tokenPositions[pid] : p.position;
+              return displayPos === space.i;
             });
 
             return (
               <div
                 key={space.i}
-                className={`mpoly-space mpoly-space--${pos.side}${isCorner ? " mpoly-space--corner" : ""}${isMortgaged ? " mpoly-space--mortgaged" : ""}${selectedSpace === space.i ? " mpoly-space--selected" : ""}${isMyProp ? " mpoly-space--mine" : ""} mpoly-space--${space.type}`}
+                className={`mpoly-space mpoly-space--${pos.side}${isCorner ? " mpoly-space--corner" : ""}${isMortgaged ? " mpoly-space--mortgaged" : ""}${selectedSpace === space.i ? " mpoly-space--selected" : ""}${isMyProp ? " mpoly-space--mine" : ""}${landedSpace === space.i ? " mpoly-space--landed" : ""} mpoly-space--${space.type}`}
                 style={{ gridRow: pos.row, gridColumn: pos.col }}
                 onClick={() => setSelectedSpace(selectedSpace === space.i ? null : space.i)}
+                onMouseEnter={() => { if (owner && !isCorner) setHoverRentSpace(space.i); }}
+                onMouseLeave={() => setHoverRentSpace(null)}
               >
                 {space.group && (
                   <div className={`mpoly-color-bar mpoly-cb--${pos.side}`} style={{ background: GROUP_COLORS[space.group] }} />
@@ -502,15 +615,26 @@ export default function MonopolyGame() {
                 {owner && !isCorner && (
                   <div className="mpoly-owner-dot" style={{ background: pColor(owner) }} />
                 )}
+                {hoverRentSpace === space.i && owner && (() => {
+                  const ri = getCurrentRent(space.i);
+                  if (!ri) return null;
+                  return (
+                    <div className="mpoly-rent-tip">
+                      {ri.mortgaged ? "Mortgaged" : ri.isUtility ? ri.rent : `$${ri.rent}`}
+                      {ri.monopoly && !ri.houses && <span className="mpoly-rent-tip-x2"> 2×</span>}
+                    </div>
+                  );
+                })()}
                 {playersHere.length > 0 && (
                   <div className="mpoly-tokens">
                     {playersHere.map(pid => (
                       <div
                         key={pid}
-                        className={`mpoly-token${pid === game.currentPlayerId ? " mpoly-token--active" : ""}`}
-                        style={{ background: pColor(pid) }}
+                        className={`mpoly-token${pid === game.currentPlayerId ? " mpoly-token--active" : ""}${tokenPositions[pid] !== undefined ? " mpoly-token--moving" : ""}`}
                         title={game.players[pid]?.name}
-                      />
+                      >
+                        {PLAYER_AVATARS[game.playerOrder.indexOf(pid)] || "🎲"}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -857,6 +981,12 @@ export default function MonopolyGame() {
               <span>Build Houses</span>
               <button className="mpoly-modal-x" onClick={() => setModal(null)}>x</button>
             </div>
+            {game.housesAvailable !== undefined && (
+              <div className="mpoly-build-pool">
+                <span>🏠 {game.housesAvailable} houses</span>
+                <span>🏨 {game.hotelsAvailable} hotels</span>
+              </div>
+            )}
             {getMyBuildable().length === 0 ? (
               <div className="mpoly-modal-empty">No complete color sets to build on</div>
             ) : (
@@ -902,7 +1032,7 @@ export default function MonopolyGame() {
                       <span className="mpoly-list-name">{sp.short || sp.name}</span>
                       <span className="mpoly-list-detail">{mortgaged ? "Mortgaged" : `$${Math.floor(sp.price / 2)}`}</span>
                       {mortgaged
-                        ? <button className="mpoly-btn mpoly-btn--sm" onClick={() => unmortgageProp(idx)}>Unmortgage</button>
+                        ? <button className="mpoly-btn mpoly-btn--sm" onClick={() => unmortgageProp(idx)}>Unmortgage (${Math.ceil(Math.floor(sp.price / 2) * 1.1)})</button>
                         : <button className="mpoly-btn mpoly-btn--decline-sm" onClick={() => mortgageProp(idx)}>Mortgage</button>
                       }
                     </div>
