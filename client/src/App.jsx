@@ -11,6 +11,8 @@ import MafiaGame from "./pages/MafiaGame";
 import MafiaEnd from "./pages/MafiaEnd";
 import LimnRoom from "./pages/LimnRoom";
 import MafiaRoomPage from "./pages/MafiaRoomPage";
+import MonopolyHome from "./pages/MonopolyHome";
+import MonopolyRoomPage from "./pages/MonopolyRoomPage";
 import { getSocket, saveSession, clearSession, getSession, getSavedName, savePlayerName } from "./hooks/useSocket";
 import "./App.css";
 
@@ -24,6 +26,7 @@ export default function App() {
   const [finalPlayers, setFinalPlayers] = useState(null);
   const [mafiaEnd,     setMafiaEnd]     = useState(null);
   const [mafiaRole,    setMafiaRole]    = useState(null);
+  const [monopolyEnd,  setMonopolyEnd]  = useState(null);
   const [connected,    setConnected]    = useState(true);
   const [gamePhase,    setGamePhase]    = useState("lobby"); // lobby | game | end
 
@@ -54,10 +57,12 @@ export default function App() {
       }
       const session = getSession();
       const path = locationRef.current.pathname;
-      if (!session || path === "/" || path === "/limn" || path === "/mafia") return;
+      if (!session || path === "/" || path === "/limn" || path === "/mafia" || path === "/monopoly") return;
 
       if (session.gameType === "mafia") {
         s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else if (session.gameType === "monopoly") {
+        s.emit("monopoly-rejoin", { roomCode: session.roomCode, name: session.name });
       } else {
         s.emit("rejoin", session);
       }
@@ -66,20 +71,23 @@ export default function App() {
     function onDisconnect() { setConnected(false); }
     function onRejoinFailed() { clearSession(); navigate("/"); }
     function onMafiaRejoinFailed() { clearSession(); navigate("/"); }
+    function onMonopolyRejoinFailed() { clearSession(); navigate("/"); }
 
-    s.on("round-start",          onRoundStart);
-    s.on("game-end",             onGameEndEvent);
-    s.on("connect",              onConnect);
-    s.on("disconnect",           onDisconnect);
-    s.on("rejoin-failed",        onRejoinFailed);
-    s.on("mafia-rejoin-failed",  onMafiaRejoinFailed);
+    s.on("round-start",              onRoundStart);
+    s.on("game-end",                 onGameEndEvent);
+    s.on("connect",                  onConnect);
+    s.on("disconnect",               onDisconnect);
+    s.on("rejoin-failed",            onRejoinFailed);
+    s.on("mafia-rejoin-failed",      onMafiaRejoinFailed);
+    s.on("monopoly-rejoin-failed",   onMonopolyRejoinFailed);
     return () => {
-      s.off("round-start",          onRoundStart);
-      s.off("game-end",             onGameEndEvent);
-      s.off("connect",              onConnect);
-      s.off("disconnect",           onDisconnect);
-      s.off("rejoin-failed",        onRejoinFailed);
-      s.off("mafia-rejoin-failed",  onMafiaRejoinFailed);
+      s.off("round-start",            onRoundStart);
+      s.off("game-end",               onGameEndEvent);
+      s.off("connect",                onConnect);
+      s.off("disconnect",             onDisconnect);
+      s.off("rejoin-failed",          onRejoinFailed);
+      s.off("mafia-rejoin-failed",    onMafiaRejoinFailed);
+      s.off("monopoly-rejoin-failed", onMonopolyRejoinFailed);
     };
   }, [navigate]);
 
@@ -111,6 +119,27 @@ export default function App() {
     };
   }, []);
 
+  // ── Global socket wiring (Monopoly) ──────────────────────
+  useEffect(() => {
+    const s = getSocket();
+
+    function onMonopolyGameStart() {
+      setGamePhase("game");
+    }
+    function onMonopolyGameEnd({ winnerId, standings }) {
+      setMonopolyEnd({ winnerId, standings });
+      setGamePhase("end");
+      clearSession();
+    }
+
+    s.on("monopoly-game-start", onMonopolyGameStart);
+    s.on("monopoly-game-end",   onMonopolyGameEnd);
+    return () => {
+      s.off("monopoly-game-start", onMonopolyGameStart);
+      s.off("monopoly-game-end",   onMonopolyGameEnd);
+    };
+  }, []);
+
   // ── Auto-rejoin on page load ─────────────────────────────
   useEffect(() => {
     const session = getSession();
@@ -122,6 +151,8 @@ export default function App() {
       wasConnected.current = true;
       if (session.gameType === "mafia") {
         s.emit("mafia-rejoin", { roomCode: session.roomCode, name: session.name });
+      } else if (session.gameType === "monopoly") {
+        s.emit("monopoly-rejoin", { roomCode: session.roomCode, name: session.name });
       } else {
         s.emit("rejoin", session);
       }
@@ -137,15 +168,22 @@ export default function App() {
       setGamePhase("lobby");
       navigate(`/mafia/${code}`, { replace: true });
     }
+    function onMonopolyRejoined({ code, roomState }) {
+      setSessionData({ code, roomState, playerName: session.name });
+      setGamePhase("lobby");
+      navigate(`/monopoly/${code}`, { replace: true });
+    }
 
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
+    s.once("monopoly-rejoined", onMonopolyRejoined);
     if (s.connected) { doRejoin(); }
     else { s.connect(); s.once("connect", doRejoin); }
 
     return () => {
       s.off("rejoined", onRejoined);
       s.off("mafia-rejoined", onMafiaRejoined);
+      s.off("monopoly-rejoined", onMonopolyRejoined);
     };
   }, [navigate]);
 
@@ -156,8 +194,9 @@ export default function App() {
   }
 
   function handleSelectGame(id) {
-    if (id === "limn")  navigate("/limn");
-    if (id === "mafia") navigate("/mafia");
+    if (id === "limn")     navigate("/limn");
+    if (id === "mafia")    navigate("/mafia");
+    if (id === "monopoly") navigate("/monopoly");
   }
 
   function handleJoined({ code, roomState }) {
@@ -174,6 +213,13 @@ export default function App() {
     navigate(`/mafia/${code}`);
   }
 
+  function handleMonopolyJoined({ code, roomState }) {
+    setSessionData({ code, roomState, playerName });
+    setGamePhase("lobby");
+    saveSession(playerName, code, "monopoly");
+    navigate(`/monopoly/${code}`);
+  }
+
   function handleBackToHub() {
     clearSession();
     setSessionData(null);
@@ -181,6 +227,7 @@ export default function App() {
     setFinalPlayers(null);
     setMafiaEnd(null);
     setMafiaRole(null);
+    setMonopolyEnd(null);
     setGamePhase("lobby");
     navigate("/");
   }
@@ -203,9 +250,16 @@ export default function App() {
     navigate("/mafia");
   }
 
-  // Determine if the disconnect overlay should show
+  function handleMonopolyPlayAgain() {
+    clearSession();
+    setSessionData(null);
+    setMonopolyEnd(null);
+    setGamePhase("lobby");
+    navigate("/monopoly");
+  }
+
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -272,6 +326,32 @@ export default function App() {
               playerName={playerName}
               onJoined={handleMafiaJoined}
               onPlayAgain={handleMafiaPlayAgain}
+              onBackToHub={handleBackToHub}
+            />
+          }
+        />
+
+        {/* ── Monopoly ── */}
+        <Route
+          path="/monopoly"
+          element={
+            <MonopolyHome
+              playerName={playerName}
+              onJoined={handleMonopolyJoined}
+              onBack={() => navigate("/")}
+            />
+          }
+        />
+        <Route
+          path="/monopoly/:code"
+          element={
+            <MonopolyRoomPage
+              sessionData={sessionData}
+              gamePhase={gamePhase}
+              monopolyEnd={monopolyEnd}
+              playerName={playerName}
+              onJoined={handleMonopolyJoined}
+              onPlayAgain={handleMonopolyPlayAgain}
               onBackToHub={handleBackToHub}
             />
           }

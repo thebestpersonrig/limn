@@ -2,9 +2,12 @@ import { GameRoom } from "../game/GameRoom.js";
 import { Player } from "../game/Player.js";
 import { MafiaRoom } from "../game/MafiaRoom.js";
 import { MafiaPlayer } from "../game/MafiaPlayer.js";
+import { MonopolyRoom } from "../game/MonopolyRoom.js";
+import { MonopolyPlayer } from "../game/MonopolyPlayer.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
+const monopolyRooms = new Map();
 
 function generateCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -24,7 +27,7 @@ export function registerHandlers(io) {
 
     socket.on("create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code)) code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
       const room = new GameRoom(code, io);
       rooms.set(code, room);
       joinRoom(socket, room, name || "Player");
@@ -130,6 +133,11 @@ export function registerHandlers(io) {
         mRoom.removePlayer(socket.id);
         if (mRoom.isEmpty()) mafiaRooms.delete(currentMafiaCode);
       }
+      const monoRoom = monopolyRooms.get(currentMonopolyCode);
+      if (monoRoom) {
+        monoRoom.removePlayer(socket.id);
+        if (monoRoom.isEmpty()) monopolyRooms.delete(currentMonopolyCode);
+      }
     }));
 
     function joinRoom(socket, room, name) {
@@ -149,7 +157,7 @@ export function registerHandlers(io) {
 
     socket.on("mafia-create-room", safe(({ name, roleConfig }) => {
       let code = generateCode();
-      while (mafiaRooms.has(code) || rooms.has(code)) code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
       const room = new MafiaRoom(code, io);
       if (roleConfig) {
         if (roleConfig.mafiaCount) room.roleConfig.mafiaCount = roleConfig.mafiaCount;
@@ -209,6 +217,134 @@ export function registerHandlers(io) {
       const player = new MafiaPlayer(sock.id, name);
       room.addPlayer(player);
       sock.emit("mafia-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    // -- Monopoly handlers --
+    let currentMonopolyCode = null;
+
+    socket.on("monopoly-create-room", safe(({ name, settings }) => {
+      let code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code)) code = generateCode();
+      const room = new MonopolyRoom(code, io);
+      if (settings) {
+        if (settings.startingMoney) room.settings.startingMoney = settings.startingMoney;
+        if (settings.mode) room.settings.mode = settings.mode;
+        if (settings.turnTimer !== undefined) room.settings.turnTimer = settings.turnTimer;
+        if (settings.freeParking !== undefined) room.settings.freeParking = settings.freeParking;
+      }
+      monopolyRooms.set(code, room);
+      joinMonopolyRoom(socket, room, name || "Player");
+    }));
+
+    socket.on("monopoly-join-room", safe(({ code, name }) => {
+      if (!code) return socket.emit("monopoly-error", { message: "Invalid room code." });
+      const room = monopolyRooms.get(code.toUpperCase());
+      if (!room) return socket.emit("monopoly-error", { message: "Room not found." });
+      if (room.phase !== "lobby") return socket.emit("monopoly-error", { message: "Game already in progress." });
+      if (room.players.size >= 6) return socket.emit("monopoly-error", { message: "Room is full (6 players max)." });
+      joinMonopolyRoom(socket, room, name || "Player");
+    }));
+
+    socket.on("monopoly-rejoin", safe(({ roomCode, name }) => {
+      const room = monopolyRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("monopoly-rejoin-failed");
+      joinMonopolyRoom(socket, room, name || "Player");
+      socket.emit("monopoly-rejoined", { code: room.code, roomState: room.getRoomState() });
+      if (room.phase === "playing") {
+        socket.emit("monopoly-state-sync", { gameState: room.getGameState() });
+      }
+    }));
+
+    socket.on("monopoly-start-game", safe((settings = {}) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (!room) return;
+      const result = room.startGame(settings);
+      if (result?.error) socket.emit("monopoly-error", result);
+    }));
+
+    socket.on("monopoly-roll", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleRoll(socket.id);
+    }));
+
+    socket.on("monopoly-buy", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleBuy(socket.id);
+    }));
+
+    socket.on("monopoly-decline-buy", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleDeclineBuy(socket.id);
+    }));
+
+    socket.on("monopoly-auction-bid", safe(({ amount }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && amount) room.handleBid(socket.id, amount);
+    }));
+
+    socket.on("monopoly-auction-pass", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleAuctionPass(socket.id);
+    }));
+
+    socket.on("monopoly-build", safe(({ propertyIndex }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && propertyIndex !== undefined) room.handleBuild(socket.id, propertyIndex);
+    }));
+
+    socket.on("monopoly-sell-building", safe(({ propertyIndex }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && propertyIndex !== undefined) room.handleSellBuilding(socket.id, propertyIndex);
+    }));
+
+    socket.on("monopoly-mortgage", safe(({ propertyIndex }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && propertyIndex !== undefined) room.handleMortgage(socket.id, propertyIndex);
+    }));
+
+    socket.on("monopoly-unmortgage", safe(({ propertyIndex }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && propertyIndex !== undefined) room.handleUnmortgage(socket.id, propertyIndex);
+    }));
+
+    socket.on("monopoly-trade-offer", safe(({ toId, offering, requesting }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && toId) room.handleTradeOffer(socket.id, toId, offering || {}, requesting || {});
+    }));
+
+    socket.on("monopoly-trade-respond", safe(({ accept }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleTradeResponse(socket.id, !!accept);
+    }));
+
+    socket.on("monopoly-trade-cancel", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleTradeCancel(socket.id);
+    }));
+
+    socket.on("monopoly-jail-decision", safe(({ choice }) => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && choice) room.handleJailDecision(socket.id, choice);
+    }));
+
+    socket.on("monopoly-end-turn", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room) room.handleEndTurn(socket.id);
+    }));
+
+    socket.on("monopoly-get-state", safe(() => {
+      const room = monopolyRooms.get(currentMonopolyCode);
+      if (room && room.phase === "playing") {
+        socket.emit("monopoly-state-sync", { gameState: room.getGameState() });
+      }
+    }));
+
+    function joinMonopolyRoom(sock, room, name) {
+      currentMonopolyCode = room.code;
+      sock.join(room.code);
+      const player = new MonopolyPlayer(sock.id, name);
+      room.addPlayer(player);
+      sock.emit("monopoly-joined-room", { code: room.code, roomState: room.getRoomState() });
     }
   });
 }
