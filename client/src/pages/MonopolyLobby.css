@@ -1,0 +1,140 @@
+.mono-lobby {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a10;
+  padding: 20px;
+}
+
+.mono-lobby-card {
+  background: #12121a;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.mono-lobby-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #00A651;
+  margin: 0 0 16px;
+}
+
+.mono-lobby-code-row {
+  margin-bottom: 16px;
+}
+.mono-lobby-code-label {
+  display: block;
+  color: #555;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.mono-lobby-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.mono-lobby-code-badge {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: white;
+  background: #1a1a2a;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+.mono-lobby-copy-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #1a1a2a;
+  color: #888;
+  border: 1px solid #2a2a3a;
+  cursor: pointer;
+}
+.mono-lobby-copy-btn:hover { color: #ccc; border-color: #444; }
+
+.mono-lobby-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.mono-lobby-setting {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  background: #1a1a2a;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.mono-lobby-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.mono-lobby-player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #0d0d14;
+  border-radius: 8px;
+}
+.mono-lobby-player-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mono-lobby-player-name {
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mono-lobby-host-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00A651;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mono-lobby-error {
+  color: #ff4444;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.mono-lobby-start-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  background: #00A651;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+.mono-lobby-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mono-lobby-waiting {
+  color: #555;
+  font-size: 14px;
+  margin: 0;
+}

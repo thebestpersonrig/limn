@@ -1,0 +1,101 @@
+.kart-home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f13;
+  padding: 20px;
+}
+
+.kart-home-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 44px 38px;
+  width: 390px;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.kart-home-back {
+  display: block;
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  margin: 0 0 10px;
+  padding: 0;
+}
+.kart-home-back:hover { color: #888; }
+
+.kart-home-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: #22d3ee;
+  margin: 0 0 4px;
+  font-family: Georgia, serif;
+  letter-spacing: -1px;
+}
+
+.kart-home-subtitle {
+  color: #555;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+
+.kart-home-playing-as {
+  color: #555;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.kart-home-playing-as strong {
+  color: #67e8f9;
+}
+
+.kart-home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.kart-home-btn {
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.kart-home-btn:active { transform: scale(0.98); }
+.kart-home-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.kart-home-btn-primary { background: #0891b2; color: #fff; }
+.kart-home-btn-secondary { background: #2a2a3a; color: #ccc; }
+.kart-home-btn-ghost { background: transparent; color: #666; border: 1px solid #333; }
+
+.kart-home-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #2a2a3a;
+  background: #0f0f13;
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 3px;
+  font-weight: 800;
+  outline: none;
+}
+.kart-home-input:focus { border-color: #22d3ee; }
+.kart-home-input::placeholder { color: #444; letter-spacing: 0; font-weight: 400; }
+
+.kart-home-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
