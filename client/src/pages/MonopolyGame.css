@@ -84,7 +84,7 @@
   gap: 6px;
   padding: 10px 16px;
   width: 100%;
-  max-width: 760px;
+  max-width: 800px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -98,8 +98,8 @@
   border: 1px solid transparent;
   min-width: 0;
   flex: 1;
-  min-width: 120px;
-  max-width: 200px;
+  min-width: 130px;
+  max-width: 210px;
   transition: all 0.2s;
 }
 .mpoly-ps--turn {
@@ -114,12 +114,9 @@
   border-color: #00A651;
   border-left: 3px solid #00A651;
 }
-.mpoly-ps--bankrupt {
-  opacity: 0.35;
-}
+.mpoly-ps--bankrupt { opacity: 0.35; }
 .mpoly-ps-dot {
-  width: 10px;
-  height: 10px;
+  width: 10px; height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -143,17 +140,27 @@
   color: #00A651;
   font-variant-numeric: tabular-nums;
 }
+.mpoly-ps-nw {
+  font-size: 9px;
+  color: #556;
+  font-variant-numeric: tabular-nums;
+}
 .mpoly-ps-meta {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
 }
-.mpoly-ps-props {
-  font-size: 10px;
-  color: #667;
-  background: #1a1a24;
-  padding: 1px 5px;
-  border-radius: 4px;
+.mpoly-ps-groups {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.mpoly-ps-gswatch {
+  width: 6px; height: 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 .mpoly-ps-badge {
   font-size: 8px;
@@ -223,6 +230,9 @@
   box-shadow: inset 0 0 18px rgba(0,166,81,0.25) !important;
 }
 .mpoly-space--mortgaged { opacity: 0.45; }
+.mpoly-space--mine {
+  box-shadow: inset 0 0 8px rgba(52,152,219,0.15);
+}
 
 /* ── Corners ─────────────────────────────────────── */
 .mpoly-space--corner {
@@ -375,9 +385,7 @@
   gap: 6px;
   border: 1px solid #1a3a2a;
 }
-.mpoly-center-top {
-  text-align: center;
-}
+.mpoly-center-top { text-align: center; }
 .mpoly-center-title {
   font-size: clamp(18px, 3.5vmin, 32px);
   font-weight: 900;
@@ -420,9 +428,7 @@
   align-self: center;
   justify-self: center;
 }
-.mpoly-die--rolling {
-  animation: mpoly-dice-shake 0.6s ease-out;
-}
+.mpoly-die--rolling { animation: mpoly-dice-shake 0.6s ease-out; }
 .mpoly-dice-total {
   font-size: 13px;
   font-weight: 700;
@@ -442,6 +448,34 @@
   letter-spacing: 1px;
 }
 
+/* Roll Announcement */
+.mpoly-roll-announce {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: mpoly-ra-in 0.4s ease-out;
+}
+.mpoly-ra-text {
+  font-size: clamp(12px, 1.8vmin, 16px);
+  color: #dde;
+  font-weight: 600;
+}
+.mpoly-ra-text strong {
+  color: #00A651;
+  font-size: 1.2em;
+}
+.mpoly-ra-doubles {
+  font-size: 11px;
+  font-weight: 800;
+  color: #FFD700;
+  background: rgba(255,215,0,0.12);
+  padding: 2px 10px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  animation: mpoly-pulse 0.6s ease-in-out 2;
+}
+
 /* Status */
 .mpoly-center-status {
   font-size: clamp(10px, 1.5vmin, 14px);
@@ -451,9 +485,7 @@
   color: #00A651;
   text-shadow: 0 0 12px rgba(0,166,81,0.3);
 }
-.mpoly-status--other {
-  color: #778;
-}
+.mpoly-status--other { color: #778; }
 .mpoly-center-pool {
   font-size: 10px;
   font-weight: 700;
@@ -472,10 +504,7 @@
   width: 100%;
   max-width: 220px;
 }
-.mpoly-waiting {
-  color: #556;
-  font-size: 11px;
-}
+.mpoly-waiting { color: #556; font-size: 11px; }
 .mpoly-jail-actions {
   display: flex;
   flex-direction: column;
@@ -503,6 +532,113 @@
 .mpoly-quick-btns {
   display: flex;
   gap: 4px;
+}
+
+/* ── My Properties FAB ──────────────────────────── */
+.mpoly-myprops-fab {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #12121a;
+  border: 1px solid #2a3a2a;
+  border-radius: 12px;
+  color: #bbc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.mpoly-myprops-fab:hover {
+  background: #1a2a22;
+  border-color: #00A651;
+  box-shadow: 0 4px 20px rgba(0,166,81,0.15);
+}
+.mpoly-fab-icon { font-size: 16px; }
+.mpoly-fab-count {
+  background: #00A651;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── My Properties Modal Content ─────────────────── */
+.mpoly-myprops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mpoly-myprops-group {
+  background: #0d0d14;
+  border-radius: 8px;
+  padding: 10px;
+}
+.mpoly-myprops-ghdr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.mpoly-myprops-gswatch {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.mpoly-myprops-glabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #bbc;
+  flex: 1;
+}
+.mpoly-myprops-gcount {
+  font-size: 10px;
+  color: #667;
+  font-weight: 600;
+}
+.mpoly-myprops-gcount.complete {
+  color: #00A651;
+}
+.mpoly-myprops-mono {
+  font-size: 8px;
+  font-weight: 800;
+  color: #FFD700;
+  background: rgba(255,215,0,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+.mpoly-myprops-prop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.mpoly-myprops-prop.mortgaged { opacity: 0.5; }
+.mpoly-myprops-pname {
+  font-size: 12px;
+  color: #99a;
+  flex: 1;
+}
+.mpoly-myprops-phouses {
+  font-size: 10px;
+  color: #2ecc71;
+  font-weight: 700;
+}
+.mpoly-myprops-pmort {
+  font-size: 8px;
+  font-weight: 800;
+  color: #e74c3c;
+  letter-spacing: 0.5px;
 }
 
 /* ── Buttons ─────────────────────────────────────── */
@@ -581,11 +717,9 @@
 }
 .mpoly-btn--decline-sm:hover:not(:disabled) { background: #3a2a2a; }
 .mpoly-btn--icon {
-  width: 28px;
-  height: 28px;
+  width: 28px; height: 28px;
   padding: 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 16px; font-weight: 700;
   background: #1a2a22;
   color: #8a9;
   border: 1px solid #2a3a2a;
@@ -595,8 +729,21 @@
   justify-content: center;
 }
 .mpoly-btn--icon:hover:not(:disabled) { background: #2a3a2a; color: #dde; }
+.mpoly-btn--bid-quick {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1a2a22;
+  color: #8a9;
+  border: 1px solid #2a3a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mpoly-btn--bid-quick:hover:not(:disabled) { background: #00A651; color: white; border-color: #00A651; }
+.mpoly-btn--bid-quick:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ── Overlay (full-screen backdrop) ──────────────── */
+/* ── Overlay ─────────────────────────────────────── */
 .mpoly-overlay {
   position: fixed;
   inset: 0;
@@ -690,11 +837,23 @@
   font-weight: 900;
   color: #00A651;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
-.mpoly-propcard-rents {
-  margin-bottom: 14px;
+.mpoly-propcard-warn {
+  font-size: 11px;
+  color: #e74c3c;
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
+.mpoly-propcard-ok {
+  font-size: 11px;
+  color: #6a7;
+  text-align: center;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.mpoly-propcard-rents { margin-bottom: 14px; }
 .mpoly-rent-row {
   display: flex;
   justify-content: space-between;
@@ -704,10 +863,7 @@
   border-bottom: 1px solid #1a1a24;
 }
 .mpoly-rent-row:last-child { border-bottom: none; }
-.mpoly-rent-row span:last-child {
-  font-weight: 700;
-  color: #bbc;
-}
+.mpoly-rent-row span:last-child { font-weight: 700; color: #bbc; }
 .mpoly-rent-row--hotel span:last-child { color: #e74c3c; }
 .mpoly-rent-row--cost {
   border-top: 1px solid #2a2a3a;
@@ -734,7 +890,7 @@
   scrollbar-width: thin;
   scrollbar-color: #2a2a3a transparent;
 }
-.mpoly-modal--wide { width: 440px; }
+.mpoly-modal--wide { width: 460px; }
 .mpoly-modal-head {
   font-size: 15px;
   font-weight: 700;
@@ -762,7 +918,7 @@
   margin-top: 14px;
 }
 
-/* ── List (Build / Mortgage rows) ────────────────── */
+/* ── List rows ───────────────────────────────────── */
 .mpoly-list {
   display: flex;
   flex-direction: column;
@@ -815,8 +971,22 @@
 .mpoly-auction-info strong { color: #00A651; }
 .mpoly-auction-ctrls {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mpoly-auction-quick {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.mpoly-auction-custom {
+  display: flex;
   gap: 6px;
   align-items: center;
+}
+.mpoly-auction-bal {
+  font-size: 11px;
+  color: #556;
 }
 .mpoly-auction-passed {
   font-size: 13px;
@@ -860,9 +1030,7 @@
 }
 
 /* ── Trade ────────────────────────────────────────── */
-.mpoly-trade-field {
-  margin-bottom: 12px;
-}
+.mpoly-trade-field { margin-bottom: 12px; }
 .mpoly-trade-field label {
   display: block;
   font-size: 12px;
@@ -898,22 +1066,58 @@
   text-transform: uppercase;
   margin-bottom: 6px;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mpoly-trade-sel {
+  font-size: 10px;
+  color: #00A651;
+  font-weight: 600;
+}
+.mpoly-trade-section-label {
+  font-size: 10px;
+  color: #556;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 6px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #1a1a24;
+}
+.mpoly-trade-section-label .mpoly-trade-bal {
+  text-transform: none;
+  color: #667;
+  font-weight: 500;
 }
 .mpoly-trade-item {
   font-size: 12px;
   color: #aab;
   padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .mpoly-trade-item.dim { color: #445; font-style: italic; }
 .mpoly-trade-item.green { color: #00A651; font-weight: 600; }
+.mpoly-trade-swatch {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
 .mpoly-trade-check {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   color: #aab;
-  padding: 2px 0;
+  padding: 3px 0;
   cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mpoly-trade-check.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 .mpoly-trade-check input { accent-color: #00A651; }
 
@@ -930,10 +1134,7 @@
   width: 90px;
 }
 .mpoly-input:focus { border-color: #00A651; }
-.mpoly-input--full {
-  width: 100%;
-  margin-top: 6px;
-}
+.mpoly-input--full { width: 100%; margin-top: 4px; }
 
 /* ── Animations ──────────────────────────────────── */
 @keyframes mpoly-pulse {
@@ -969,26 +1170,23 @@
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(40px); }
 }
+@keyframes mpoly-ra-in {
+  from { transform: scale(0.7); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 720px) {
   .mpoly-board {
     width: min(calc(100vw - 16px), 500px);
   }
-  .mpoly-strip {
-    padding: 6px 8px;
-    gap: 4px;
-  }
-  .mpoly-ps {
-    padding: 6px 8px;
-    min-width: 100px;
-  }
+  .mpoly-strip { padding: 6px 8px; gap: 4px; }
+  .mpoly-ps { padding: 6px 8px; min-width: 100px; }
   .mpoly-ps-name { font-size: 11px; }
   .mpoly-ps-money { font-size: 12px; }
-  .mpoly-toasts {
-    right: 8px;
-    max-width: 260px;
-  }
+  .mpoly-ps-nw { display: none; }
+  .mpoly-toasts { right: 8px; max-width: 260px; }
+  .mpoly-myprops-fab { bottom: 12px; left: 12px; padding: 8px 12px; }
 }
 @media (max-width: 500px) {
   .mpoly { padding: 0; }
@@ -997,4 +1195,5 @@
   .mpoly-center-title { font-size: 16px; letter-spacing: 2px; }
   .mpoly-strip { padding: 4px 4px; gap: 3px; }
   .mpoly-ps { min-width: 80px; padding: 5px 6px; gap: 5px; }
+  .mpoly-ps-groups { display: none; }
 }

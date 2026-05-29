@@ -33,6 +33,7 @@ export default function MonopolyGame() {
 
   const [game, setGame] = useState(null);
   const [rolling, setRolling] = useState(false);
+  const [rollAnnounce, setRollAnnounce] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [error, setError] = useState("");
   const [selectedSpace, setSelectedSpace] = useState(null);
@@ -46,6 +47,9 @@ export default function MonopolyGame() {
   const [tradeRequestMoney, setTradeRequestMoney] = useState(0);
   const [cardPopup, setCardPopup] = useState(null);
   const rollTimerRef = useRef(null);
+  const announceTimerRef = useRef(null);
+  const gameRef = useRef(null);
+  gameRef.current = game;
 
   const addToast = useCallback((text, type = "info") => {
     const id = ++toastId;
@@ -61,7 +65,19 @@ export default function MonopolyGame() {
       updateState(data);
       setRolling(true);
       clearTimeout(rollTimerRef.current);
-      rollTimerRef.current = setTimeout(() => setRolling(false), 800);
+      clearTimeout(announceTimerRef.current);
+
+      const total = (data.gameState?.lastDice?.[0] || 0) + (data.gameState?.lastDice?.[1] || 0);
+      const doubles = data.gameState?.lastDice?.[0] > 0 && data.gameState?.lastDice?.[0] === data.gameState?.lastDice?.[1];
+      const rollerId = data.gameState?.currentPlayerId;
+      const rollerName = data.gameState?.players?.[rollerId]?.name || "Someone";
+      const isMe = rollerId === myId;
+
+      rollTimerRef.current = setTimeout(() => {
+        setRolling(false);
+        setRollAnnounce({ total, name: rollerName, isMe, doubles });
+        announceTimerRef.current = setTimeout(() => setRollAnnounce(null), 2000);
+      }, 800);
     }
     function onCard(data) {
       updateState(data);
@@ -125,6 +141,7 @@ export default function MonopolyGame() {
       socket.off("monopoly-error", onError);
       socket.off("monopoly-state-sync", onStateSync);
       clearTimeout(rollTimerRef.current);
+      clearTimeout(announceTimerRef.current);
     };
   }, []);
 
@@ -163,6 +180,22 @@ export default function MonopolyGame() {
   function mortgageProp(idx) { socket.emit("monopoly-mortgage", { propertyIndex: idx }); }
   function unmortgageProp(idx) { socket.emit("monopoly-unmortgage", { propertyIndex: idx }); }
   function jailChoice(choice) { socket.emit("monopoly-jail-decision", { choice }); }
+
+  function toggleTradeOfferProp(idx) {
+    if (tradeOfferProps.includes(idx)) {
+      setTradeOfferProps(tradeOfferProps.filter(x => x !== idx));
+    } else if (tradeOfferProps.length < 3) {
+      setTradeOfferProps([...tradeOfferProps, idx]);
+    }
+  }
+  function toggleTradeRequestProp(idx) {
+    if (tradeRequestProps.includes(idx)) {
+      setTradeRequestProps(tradeRequestProps.filter(x => x !== idx));
+    } else if (tradeRequestProps.length < 3) {
+      setTradeRequestProps([...tradeRequestProps, idx]);
+    }
+  }
+
   function submitTrade() {
     socket.emit("monopoly-trade-offer", {
       toId: tradeTarget,
@@ -198,6 +231,65 @@ export default function MonopolyGame() {
       }
     });
     return buildable;
+  }
+
+  // Group my properties by color for the "My Properties" panel
+  function getMyPropsGrouped() {
+    if (!me?.properties) return [];
+    const groups = {};
+    const ungrouped = [];
+    me.properties.forEach(idx => {
+      const sp = BOARD[idx];
+      if (sp?.group) {
+        if (!groups[sp.group]) groups[sp.group] = [];
+        groups[sp.group].push(idx);
+      } else {
+        ungrouped.push(idx);
+      }
+    });
+    const result = [];
+    Object.entries(groups).forEach(([group, indices]) => {
+      result.push({
+        group,
+        color: GROUP_COLORS[group],
+        total: GROUP_SIZES[group],
+        owned: indices.length,
+        complete: indices.length === GROUP_SIZES[group],
+        props: indices.map(idx => ({
+          idx,
+          name: BOARD[idx]?.short || BOARD[idx]?.name,
+          houses: game.propertyHouses[idx] || 0,
+          mortgaged: game.mortgagedProps.includes(idx),
+        })),
+      });
+    });
+    if (ungrouped.length > 0) {
+      result.push({
+        group: "other",
+        color: "#667",
+        total: 0,
+        owned: ungrouped.length,
+        complete: false,
+        props: ungrouped.map(idx => ({
+          idx,
+          name: BOARD[idx]?.short || BOARD[idx]?.name,
+          houses: 0,
+          mortgaged: game.mortgagedProps.includes(idx),
+        })),
+      });
+    }
+    return result;
+  }
+
+  function netWorth(p) {
+    if (!p) return 0;
+    let nw = p.money || 0;
+    (p.properties || []).forEach(idx => {
+      const sp = BOARD[idx];
+      if (sp?.price) nw += sp.price;
+      nw += (game.propertyHouses[idx] || 0) * (sp?.houseCost || 0);
+    });
+    return nw;
   }
 
   function renderCorner(space) {
@@ -293,6 +385,13 @@ export default function MonopolyGame() {
   }
 
   const buyPromptSpace = game.turnState === "buyPrompt" && currentPlayer ? BOARD[currentPlayer.position] : null;
+  const canAfford = buyPromptSpace && me ? me.money >= buyPromptSpace.price : false;
+  const showBuyCard = isMyTurn && game.turnState === "buyPrompt" && buyPromptSpace && !rollAnnounce && !rolling;
+  const myPropGroups = getMyPropsGrouped();
+  const myPropCount = me?.properties?.length || 0;
+
+  // Auction quick bid helpers
+  const auctionMin = (game.auctionState?.currentBid || 0) + 1;
 
   return (
     <div className="mpoly">
@@ -312,15 +411,29 @@ export default function MonopolyGame() {
           const p = game.players[pid];
           if (!p) return null;
           const isTurn = pid === game.currentPlayerId;
+          const nw = netWorth(p);
+          // collect color swatches for owned property groups
+          const ownedGroups = [];
+          (p.properties || []).forEach(propIdx => {
+            const sp = BOARD[propIdx];
+            if (sp?.group && !ownedGroups.includes(sp.group)) ownedGroups.push(sp.group);
+          });
           return (
             <div key={pid} className={`mpoly-ps${isTurn ? " mpoly-ps--turn" : ""}${p.isBankrupt ? " mpoly-ps--bankrupt" : ""}${pid === myId ? " mpoly-ps--me" : ""}`}>
               <div className="mpoly-ps-dot" style={{ background: PLAYER_COLORS[idx] }} />
               <div className="mpoly-ps-info">
                 <span className="mpoly-ps-name">{p.name}{pid === myId ? " (you)" : ""}</span>
                 <span className="mpoly-ps-money">${p.money}</span>
+                <span className="mpoly-ps-nw">NW ${nw}</span>
               </div>
               <div className="mpoly-ps-meta">
-                {(p.properties?.length || 0) > 0 && <span className="mpoly-ps-props">{p.properties.length}</span>}
+                {ownedGroups.length > 0 && (
+                  <div className="mpoly-ps-groups">
+                    {ownedGroups.map(g => (
+                      <span key={g} className="mpoly-ps-gswatch" style={{ background: GROUP_COLORS[g] }} />
+                    ))}
+                  </div>
+                )}
                 {p.inJail && <span className="mpoly-ps-badge mpoly-ps-badge--jail">JAIL</span>}
                 {p.isBankrupt && <span className="mpoly-ps-badge mpoly-ps-badge--out">OUT</span>}
               </div>
@@ -341,6 +454,7 @@ export default function MonopolyGame() {
             const owner = game.propertyOwners[space.i];
             const houses = game.propertyHouses[space.i] || 0;
             const isMortgaged = game.mortgagedProps.includes(space.i);
+            const isMyProp = owner === myId;
             const playersHere = game.playerOrder.filter(pid => {
               const p = game.players[pid];
               return p && !p.isBankrupt && p.position === space.i;
@@ -349,7 +463,7 @@ export default function MonopolyGame() {
             return (
               <div
                 key={space.i}
-                className={`mpoly-space mpoly-space--${pos.side}${isCorner ? " mpoly-space--corner" : ""}${isMortgaged ? " mpoly-space--mortgaged" : ""}${selectedSpace === space.i ? " mpoly-space--selected" : ""} mpoly-space--${space.type}`}
+                className={`mpoly-space mpoly-space--${pos.side}${isCorner ? " mpoly-space--corner" : ""}${isMortgaged ? " mpoly-space--mortgaged" : ""}${selectedSpace === space.i ? " mpoly-space--selected" : ""}${isMyProp ? " mpoly-space--mine" : ""} mpoly-space--${space.type}`}
                 style={{ gridRow: pos.row, gridColumn: pos.col }}
                 onClick={() => setSelectedSpace(selectedSpace === space.i ? null : space.i)}
               >
@@ -405,19 +519,29 @@ export default function MonopolyGame() {
               )}
             </div>
 
-            <div className="mpoly-center-status">
-              {isMyTurn
-                ? <span className="mpoly-status--yours">Your turn</span>
-                : <span className="mpoly-status--other">{currentPlayer?.name}'s turn</span>
-              }
-            </div>
+            {/* Roll announcement replaces status temporarily */}
+            {rollAnnounce ? (
+              <div className="mpoly-roll-announce" key={rollAnnounce.total + rollAnnounce.name}>
+                <span className="mpoly-ra-text">
+                  {rollAnnounce.isMe ? "You" : rollAnnounce.name} rolled a <strong>{rollAnnounce.total}</strong>
+                </span>
+                {rollAnnounce.doubles && <span className="mpoly-ra-doubles">Doubles!</span>}
+              </div>
+            ) : (
+              <div className="mpoly-center-status">
+                {isMyTurn
+                  ? <span className="mpoly-status--yours">Your turn</span>
+                  : <span className="mpoly-status--other">{currentPlayer?.name}'s turn</span>
+                }
+              </div>
+            )}
 
             {game.settings.freeParking && game.taxPool > 0 && (
               <div className="mpoly-center-pool">Free Parking: ${game.taxPool}</div>
             )}
 
             <div className="mpoly-center-actions">
-              {isMyTurn && game.turnState === "waitingForRoll" && (
+              {isMyTurn && game.turnState === "waitingForRoll" && !rolling && !rollAnnounce && (
                 <button className="mpoly-btn mpoly-btn--roll" onClick={roll}>Roll Dice</button>
               )}
 
@@ -445,13 +569,21 @@ export default function MonopolyGame() {
                 </div>
               )}
 
-              {!isMyTurn && !game.auctionState && (
+              {!isMyTurn && !game.auctionState && !rolling && !rollAnnounce && (
                 <div className="mpoly-waiting">Waiting for {currentPlayer?.name}...</div>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* My Properties floating button */}
+      {myPropCount > 0 && (
+        <button className="mpoly-myprops-fab" onClick={() => setModal(modal === "myprops" ? null : "myprops")}>
+          <span className="mpoly-fab-icon">🏠</span>
+          <span className="mpoly-fab-count">{myPropCount}</span>
+        </button>
+      )}
 
       {/* Space detail popover */}
       {selectedSpace !== null && (
@@ -475,8 +607,8 @@ export default function MonopolyGame() {
         </div>
       )}
 
-      {/* Buy Prompt — Property Card */}
-      {isMyTurn && game.turnState === "buyPrompt" && buyPromptSpace && (
+      {/* Buy Prompt — Property Card (delayed after roll) */}
+      {showBuyCard && (
         <div className="mpoly-overlay">
           <div className="mpoly-propcard">
             <div className="mpoly-propcard-banner" style={{ background: buyPromptSpace.group ? GROUP_COLORS[buyPromptSpace.group] : "#445" }}>
@@ -484,9 +616,11 @@ export default function MonopolyGame() {
             </div>
             <div className="mpoly-propcard-body">
               <div className="mpoly-propcard-price">${buyPromptSpace.price}</div>
+              {!canAfford && <div className="mpoly-propcard-warn">You can't afford this</div>}
+              {canAfford && <div className="mpoly-propcard-ok">Balance after: ${me.money - buyPromptSpace.price}</div>}
               {getRentInfo(buyPromptSpace)}
               <div className="mpoly-propcard-btns">
-                <button className="mpoly-btn mpoly-btn--buy" onClick={buy}>Buy</button>
+                <button className="mpoly-btn mpoly-btn--buy" onClick={buy} disabled={!canAfford}>Buy</button>
                 <button className="mpoly-btn mpoly-btn--auction" onClick={declineBuy}>Auction</button>
               </div>
             </div>
@@ -510,15 +644,32 @@ export default function MonopolyGame() {
             </div>
             {me && !me.isBankrupt && !game.auctionState.passedPlayers?.includes(myId) && (
               <div className="mpoly-auction-ctrls">
-                <input
-                  type="number"
-                  className="mpoly-input"
-                  value={bidAmount || ""}
-                  onChange={e => setBidAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  placeholder={`Min $${(game.auctionState.currentBid || 0) + 1}`}
-                />
-                <button className="mpoly-btn mpoly-btn--buy" onClick={placeBid}>Bid</button>
-                <button className="mpoly-btn mpoly-btn--decline" onClick={passBid}>Pass</button>
+                <div className="mpoly-auction-quick">
+                  <button className="mpoly-btn mpoly-btn--bid-quick" onClick={() => { setBidAmount(auctionMin); socket.emit("monopoly-auction-bid", { amount: auctionMin }); }}>
+                    ${auctionMin}
+                  </button>
+                  <button className="mpoly-btn mpoly-btn--bid-quick" onClick={() => { const a = auctionMin + 9; setBidAmount(a); socket.emit("monopoly-auction-bid", { amount: a }); }} disabled={auctionMin + 9 > (me?.money || 0)}>
+                    +$10
+                  </button>
+                  <button className="mpoly-btn mpoly-btn--bid-quick" onClick={() => { const a = auctionMin + 49; setBidAmount(a); socket.emit("monopoly-auction-bid", { amount: a }); }} disabled={auctionMin + 49 > (me?.money || 0)}>
+                    +$50
+                  </button>
+                  <button className="mpoly-btn mpoly-btn--bid-quick" onClick={() => { const a = auctionMin + 99; setBidAmount(a); socket.emit("monopoly-auction-bid", { amount: a }); }} disabled={auctionMin + 99 > (me?.money || 0)}>
+                    +$100
+                  </button>
+                </div>
+                <div className="mpoly-auction-custom">
+                  <input
+                    type="number"
+                    className="mpoly-input"
+                    value={bidAmount || ""}
+                    onChange={e => setBidAmount(Math.max(0, Math.min(me?.money || 0, parseInt(e.target.value) || 0)))}
+                    placeholder={`$${auctionMin}`}
+                  />
+                  <button className="mpoly-btn mpoly-btn--buy" onClick={placeBid} disabled={bidAmount < auctionMin}>Bid</button>
+                  <button className="mpoly-btn mpoly-btn--decline" onClick={passBid}>Pass</button>
+                </div>
+                <div className="mpoly-auction-bal">Your balance: ${me?.money || 0}</div>
               </div>
             )}
             {game.auctionState.passedPlayers?.includes(myId) && (
@@ -547,7 +698,10 @@ export default function MonopolyGame() {
               <div className="mpoly-trade-col">
                 <div className="mpoly-trade-label">They offer</div>
                 {incomingTrade.offering.properties.map(idx => (
-                  <div key={idx} className="mpoly-trade-item">{BOARD[idx]?.name}</div>
+                  <div key={idx} className="mpoly-trade-item">
+                    {BOARD[idx]?.group && <span className="mpoly-trade-swatch" style={{ background: GROUP_COLORS[BOARD[idx].group] }} />}
+                    {BOARD[idx]?.name}
+                  </div>
                 ))}
                 {incomingTrade.offering.money > 0 && <div className="mpoly-trade-item green">${incomingTrade.offering.money}</div>}
                 {incomingTrade.offering.properties.length === 0 && !incomingTrade.offering.money && <div className="mpoly-trade-item dim">Nothing</div>}
@@ -555,7 +709,10 @@ export default function MonopolyGame() {
               <div className="mpoly-trade-col">
                 <div className="mpoly-trade-label">They want</div>
                 {incomingTrade.requesting.properties.map(idx => (
-                  <div key={idx} className="mpoly-trade-item">{BOARD[idx]?.name}</div>
+                  <div key={idx} className="mpoly-trade-item">
+                    {BOARD[idx]?.group && <span className="mpoly-trade-swatch" style={{ background: GROUP_COLORS[BOARD[idx].group] }} />}
+                    {BOARD[idx]?.name}
+                  </div>
                 ))}
                 {incomingTrade.requesting.money > 0 && <div className="mpoly-trade-item green">${incomingTrade.requesting.money}</div>}
                 {incomingTrade.requesting.properties.length === 0 && !incomingTrade.requesting.money && <div className="mpoly-trade-item dim">Nothing</div>}
@@ -565,6 +722,51 @@ export default function MonopolyGame() {
               <button className="mpoly-btn mpoly-btn--buy" onClick={() => respondTrade(true)}>Accept</button>
               <button className="mpoly-btn mpoly-btn--decline" onClick={() => respondTrade(false)}>Reject</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* My Properties Modal */}
+      {modal === "myprops" && (
+        <div className="mpoly-overlay" onClick={() => setModal(null)}>
+          <div className="mpoly-modal" onClick={e => e.stopPropagation()}>
+            <div className="mpoly-modal-head">
+              <span>My Properties ({myPropCount})</span>
+              <button className="mpoly-modal-x" onClick={() => setModal(null)}>x</button>
+            </div>
+            {myPropGroups.length === 0 ? (
+              <div className="mpoly-modal-empty">No properties owned yet</div>
+            ) : (
+              <div className="mpoly-myprops-list">
+                {myPropGroups.map(g => (
+                  <div key={g.group} className="mpoly-myprops-group">
+                    <div className="mpoly-myprops-ghdr">
+                      <span className="mpoly-myprops-gswatch" style={{ background: g.color }} />
+                      <span className="mpoly-myprops-glabel">
+                        {g.group === "other" ? "Railroads & Utilities" : g.group.charAt(0).toUpperCase() + g.group.slice(1)}
+                      </span>
+                      {g.total > 0 && (
+                        <span className={`mpoly-myprops-gcount${g.complete ? " complete" : ""}`}>
+                          {g.owned}/{g.total}
+                        </span>
+                      )}
+                      {g.complete && <span className="mpoly-myprops-mono">MONOPOLY</span>}
+                    </div>
+                    {g.props.map(p => (
+                      <div key={p.idx} className={`mpoly-myprops-prop${p.mortgaged ? " mortgaged" : ""}`}>
+                        <span className="mpoly-myprops-pname">{p.name}</span>
+                        {p.houses > 0 && (
+                          <span className="mpoly-myprops-phouses">
+                            {p.houses >= 5 ? "Hotel" : `${p.houses}h`}
+                          </span>
+                        )}
+                        {p.mortgaged && <span className="mpoly-myprops-pmort">MORT</span>}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -644,7 +846,7 @@ export default function MonopolyGame() {
             </div>
             <div className="mpoly-trade-field">
               <label>Trade with</label>
-              <select value={tradeTarget} onChange={e => setTradeTarget(e.target.value)}>
+              <select value={tradeTarget} onChange={e => { setTradeTarget(e.target.value); setTradeRequestProps([]); setTradeRequestMoney(0); }}>
                 <option value="">Select player...</option>
                 {game.playerOrder.filter(pid => pid !== myId && !game.players[pid]?.isBankrupt).map(pid => (
                   <option key={pid} value={pid}>{game.players[pid]?.name}</option>
@@ -653,32 +855,58 @@ export default function MonopolyGame() {
             </div>
             <div className="mpoly-trade-cols">
               <div className="mpoly-trade-col">
-                <div className="mpoly-trade-label">You offer</div>
-                {me?.properties?.map(idx => (
-                  <label key={idx} className="mpoly-trade-check">
-                    <input type="checkbox" checked={tradeOfferProps.includes(idx)} onChange={e => {
-                      setTradeOfferProps(e.target.checked ? [...tradeOfferProps, idx] : tradeOfferProps.filter(x => x !== idx));
-                    }} />
-                    {BOARD[idx]?.short || BOARD[idx]?.name}
-                  </label>
-                ))}
-                <input type="number" className="mpoly-input mpoly-input--full" placeholder="$0" value={tradeOfferMoney || ""} onChange={e => setTradeOfferMoney(Math.max(0, parseInt(e.target.value) || 0))} />
+                <div className="mpoly-trade-label">You offer {tradeOfferProps.length > 0 && <span className="mpoly-trade-sel">{tradeOfferProps.length}/3</span>}</div>
+                <div className="mpoly-trade-section-label">Properties</div>
+                {me?.properties?.length > 0 ? me.properties.map(idx => {
+                  const checked = tradeOfferProps.includes(idx);
+                  const disabled = !checked && tradeOfferProps.length >= 3;
+                  return (
+                    <label key={idx} className={`mpoly-trade-check${disabled ? " disabled" : ""}`}>
+                      <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleTradeOfferProp(idx)} />
+                      {BOARD[idx]?.group && <span className="mpoly-trade-swatch" style={{ background: GROUP_COLORS[BOARD[idx].group] }} />}
+                      {BOARD[idx]?.short || BOARD[idx]?.name}
+                    </label>
+                  );
+                }) : <div className="mpoly-trade-item dim">No properties</div>}
+                <div className="mpoly-trade-section-label">Money <span className="mpoly-trade-bal">(max ${me?.money || 0})</span></div>
+                <input
+                  type="number"
+                  className="mpoly-input mpoly-input--full"
+                  placeholder="$0"
+                  value={tradeOfferMoney || ""}
+                  min={0}
+                  max={me?.money || 0}
+                  onChange={e => setTradeOfferMoney(Math.max(0, Math.min(me?.money || 0, parseInt(e.target.value) || 0)))}
+                />
               </div>
               <div className="mpoly-trade-col">
-                <div className="mpoly-trade-label">You want</div>
-                {tradeTarget && game.players[tradeTarget]?.properties?.map(idx => (
-                  <label key={idx} className="mpoly-trade-check">
-                    <input type="checkbox" checked={tradeRequestProps.includes(idx)} onChange={e => {
-                      setTradeRequestProps(e.target.checked ? [...tradeRequestProps, idx] : tradeRequestProps.filter(x => x !== idx));
-                    }} />
-                    {BOARD[idx]?.short || BOARD[idx]?.name}
-                  </label>
-                ))}
-                <input type="number" className="mpoly-input mpoly-input--full" placeholder="$0" value={tradeRequestMoney || ""} onChange={e => setTradeRequestMoney(Math.max(0, parseInt(e.target.value) || 0))} />
+                <div className="mpoly-trade-label">You want {tradeRequestProps.length > 0 && <span className="mpoly-trade-sel">{tradeRequestProps.length}/3</span>}</div>
+                <div className="mpoly-trade-section-label">Properties</div>
+                {tradeTarget && game.players[tradeTarget]?.properties?.length > 0 ? game.players[tradeTarget].properties.map(idx => {
+                  const checked = tradeRequestProps.includes(idx);
+                  const disabled = !checked && tradeRequestProps.length >= 3;
+                  return (
+                    <label key={idx} className={`mpoly-trade-check${disabled ? " disabled" : ""}`}>
+                      <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleTradeRequestProp(idx)} />
+                      {BOARD[idx]?.group && <span className="mpoly-trade-swatch" style={{ background: GROUP_COLORS[BOARD[idx].group] }} />}
+                      {BOARD[idx]?.short || BOARD[idx]?.name}
+                    </label>
+                  );
+                }) : <div className="mpoly-trade-item dim">{tradeTarget ? "No properties" : "Select a player"}</div>}
+                <div className="mpoly-trade-section-label">Money {tradeTarget && <span className="mpoly-trade-bal">(max ${game.players[tradeTarget]?.money || 0})</span>}</div>
+                <input
+                  type="number"
+                  className="mpoly-input mpoly-input--full"
+                  placeholder="$0"
+                  value={tradeRequestMoney || ""}
+                  min={0}
+                  max={tradeTarget ? (game.players[tradeTarget]?.money || 0) : 0}
+                  onChange={e => setTradeRequestMoney(Math.max(0, Math.min(tradeTarget ? (game.players[tradeTarget]?.money || 0) : 0, parseInt(e.target.value) || 0)))}
+                />
               </div>
             </div>
             <div className="mpoly-modal-btns">
-              <button className="mpoly-btn mpoly-btn--buy" onClick={submitTrade} disabled={!tradeTarget}>Send Offer</button>
+              <button className="mpoly-btn mpoly-btn--buy" onClick={submitTrade} disabled={!tradeTarget || (tradeOfferProps.length === 0 && !tradeOfferMoney && tradeRequestProps.length === 0 && !tradeRequestMoney)}>Send Offer</button>
               <button className="mpoly-btn mpoly-btn--decline" onClick={() => setModal(null)}>Cancel</button>
             </div>
           </div>
