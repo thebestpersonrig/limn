@@ -20,6 +20,18 @@
   gap: 20px;
 }
 
+.mlobby-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.mlobby-back:hover { color: #888; }
+
 .mlobby-title {
   font-family: 'Georgia', serif;
   font-size: 36px;

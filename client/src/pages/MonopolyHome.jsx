@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, saveSession } from "../hooks/useSocket";
 import "./MonopolyHome.css";
 
 const MONEY_OPTIONS = [1000, 1500, 2000];
@@ -10,7 +11,8 @@ const MODE_OPTIONS = [
 ];
 const TIMER_OPTIONS = [0, 60, 90, 120];
 
-export default function MonopolyHome({ playerName, onJoined, onBack }) {
+export default function MonopolyHome({ playerName }) {
+  const navigate = useNavigate();
   const [code,    setCode]    = useState("");
   const [mode,    setMode]    = useState(null); // null | "create" | "join"
   const [error,   setError]   = useState("");
@@ -27,15 +29,20 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
     if (!socket.connected) {
       socket.connect();
       socket.once("connect", () => { socket.off("connect_error", onErr); cb(); });
-      function onErr(err) {
+      function onErr() {
         socket.off("connect", cb);
         setPending(false);
-        setError("Can't reach the server — try again in a moment.");
+        setError("Can't reach the server - try again in a moment.");
       }
       socket.once("connect_error", onErr);
     } else {
       cb();
     }
+  }
+
+  function handleJoined({ code: roomCode }) {
+    saveSession(playerName, roomCode, "monopoly");
+    navigate(`/monopoly/${roomCode}`);
   }
 
   function handleCreate() {
@@ -47,10 +54,7 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
         name: playerName,
         settings: { startingMoney, mode: gameMode, turnTimer, freeParking },
       });
-      socket.once("monopoly-joined-room", ({ code, roomState }) => {
-        setPending(false);
-        onJoined({ code, roomState });
-      });
+      socket.once("monopoly-joined-room", (data) => { setPending(false); handleJoined(data); });
       socket.once("monopoly-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
@@ -62,10 +66,7 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
     connect(() => {
       const socket = getSocket();
       socket.emit("monopoly-join-room", { name: playerName, code: code.trim() });
-      socket.once("monopoly-joined-room", ({ code, roomState }) => {
-        setPending(false);
-        onJoined({ code, roomState });
-      });
+      socket.once("monopoly-joined-room", (data) => { setPending(false); handleJoined(data); });
       socket.once("monopoly-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
@@ -73,15 +74,15 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
   return (
     <div className="mono-home">
       <div className="mono-home-card">
-        {onBack && <button className="mono-back" onClick={onBack}>← Romp</button>}
+        <button className="mono-back" onClick={() => navigate("/")}>Back to Romp</button>
         <h1 className="mono-title">Monopoly</h1>
         <p className="mono-subtitle">Buy. Build. Bankrupt.</p>
-        <div className="mono-playing-as">Playing as <strong>{playerName}</strong></div>
+        {playerName && <div className="mono-playing-as">Playing as <strong>{playerName}</strong></div>}
 
         {mode === null && (
           <div className="mono-buttons">
-            <button className="mono-btn mono-btn-primary" onClick={() => setMode("create")}>Create Room</button>
-            <button className="mono-btn mono-btn-secondary" onClick={() => setMode("join")}>Join Room</button>
+            <button className="mono-btn mono-btn-primary" onClick={() => setMode("create")} disabled={!playerName}>Create Room</button>
+            <button className="mono-btn mono-btn-secondary" onClick={() => setMode("join")} disabled={!playerName}>Join Room</button>
           </div>
         )}
 
@@ -140,7 +141,7 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
 
             <div className="mono-buttons">
               <button className="mono-btn mono-btn-primary" onClick={handleCreate} disabled={pending}>
-                {pending ? "Creating…" : "Create Room →"}
+                {pending ? "Creating..." : "Create Room"}
               </button>
               <button className="mono-btn mono-btn-ghost" onClick={() => { setMode(null); setError(""); }} disabled={pending}>Back</button>
             </div>
@@ -161,7 +162,7 @@ export default function MonopolyHome({ playerName, onJoined, onBack }) {
             {error && <p className="mono-error">{error}</p>}
             <div className="mono-buttons">
               <button className="mono-btn mono-btn-primary" onClick={handleJoin} disabled={pending}>
-                {pending ? "Joining…" : "Join"}
+                {pending ? "Joining..." : "Join"}
               </button>
               <button className="mono-btn mono-btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>Back</button>
             </div>

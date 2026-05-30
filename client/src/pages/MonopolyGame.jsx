@@ -58,6 +58,84 @@ function AnimatedMoney({ value }) {
   return display;
 }
 
+const MPOLY_TAUNTS = ["Good luck!", "Pay up!", "I'll buy that!", "No deal!"];
+
+function MonopolyChat({ socket }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    function onMsg(msg) {
+      setMessages(prev => {
+        const next = [...prev, msg];
+        return next.length > 50 ? next.slice(-50) : next;
+      });
+      if (!open) setUnread(u => u + 1);
+    }
+    socket.on("monopoly-chat-msg", onMsg);
+    return () => socket.off("monopoly-chat-msg", onMsg);
+  }, [socket, open]);
+
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages]);
+
+  function send() {
+    const text = input.trim();
+    if (!text) return;
+    socket.emit("monopoly-chat", { text });
+    setInput("");
+  }
+
+  function sendTaunt(text) {
+    socket.emit("monopoly-chat", { text });
+  }
+
+  if (!open) {
+    return (
+      <button className="mpoly-chat-toggle" onClick={() => { setOpen(true); setUnread(0); }}>
+        Chat {unread > 0 && <span className="mpoly-chat-unread">{unread}</span>}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mpoly-chat">
+      <div className="mpoly-chat-header">
+        <span>Chat</span>
+        <button className="mpoly-chat-close" onClick={() => setOpen(false)}>_</button>
+      </div>
+      <div className="mpoly-chat-messages" ref={listRef}>
+        {messages.length === 0 && <p className="mpoly-chat-empty">No messages yet</p>}
+        {messages.map((m, i) => (
+          <div key={i} className={`mpoly-chat-msg${m.senderId === socket.id ? " mpoly-chat-msg--me" : ""}`}>
+            <strong>{m.sender}</strong>: {m.text}
+          </div>
+        ))}
+      </div>
+      <div className="mpoly-chat-taunts">
+        {MPOLY_TAUNTS.map(t => (
+          <button key={t} className="mpoly-chat-taunt" onClick={() => sendTaunt(t)}>{t}</button>
+        ))}
+      </div>
+      <div className="mpoly-chat-input-row">
+        <input
+          className="mpoly-chat-input"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send()}
+          placeholder="Type a message..."
+          maxLength={200}
+        />
+        <button className="mpoly-chat-send" onClick={send}>Send</button>
+      </div>
+    </div>
+  );
+}
+
 let toastId = 0;
 
 export default function MonopolyGame() {
@@ -1120,6 +1198,8 @@ export default function MonopolyGame() {
           </div>
         </div>
       )}
+
+      <MonopolyChat socket={socket} />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, saveSession } from "../hooks/useSocket";
 import "./KartHome.css";
 
-export default function KartHome({ playerName, onJoined, onBack }) {
+export default function KartHome({ playerName }) {
+  const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [mode, setMode] = useState(null);
   const [error, setError] = useState("");
@@ -12,10 +14,7 @@ export default function KartHome({ playerName, onJoined, onBack }) {
     const socket = getSocket();
     if (!socket.connected) {
       socket.connect();
-      socket.once("connect", () => {
-        socket.off("connect_error", onErr);
-        cb();
-      });
+      socket.once("connect", () => { socket.off("connect_error", onErr); cb(); });
       function onErr() {
         socket.off("connect", cb);
         setPending(false);
@@ -27,52 +26,43 @@ export default function KartHome({ playerName, onJoined, onBack }) {
     }
   }
 
+  function handleJoined({ code: roomCode }) {
+    saveSession(playerName, roomCode, "kart");
+    navigate(`/kart/${roomCode}`);
+  }
+
   function handleCreate() {
-    setError("");
-    setPending(true);
+    setError(""); setPending(true);
     connect(() => {
       const socket = getSocket();
       socket.emit("kart-create-room", { name: playerName });
-      socket.once("kart-joined-room", ({ code, roomState, playerId, snapshot }) => {
-        setPending(false);
-        onJoined({ code, roomState, playerId, snapshot });
-      });
-      socket.once("kart-error", ({ message }) => {
-        setPending(false);
-        setError(message);
-      });
+      socket.once("kart-joined-room", (data) => { setPending(false); handleJoined(data); });
+      socket.once("kart-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
   function handleJoin() {
     if (!code.trim()) return setError("Enter a room code.");
-    setError("");
-    setPending(true);
+    setError(""); setPending(true);
     connect(() => {
       const socket = getSocket();
       socket.emit("kart-join-room", { name: playerName, code: code.trim() });
-      socket.once("kart-joined-room", ({ code, roomState, playerId, snapshot }) => {
-        setPending(false);
-        onJoined({ code, roomState, playerId, snapshot });
-      });
-      socket.once("kart-error", ({ message }) => {
-        setPending(false);
-        setError(message);
-      });
+      socket.once("kart-joined-room", (data) => { setPending(false); handleJoined(data); });
+      socket.once("kart-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
   return (
     <div className="kart-home">
       <div className="kart-home-card">
-        {onBack && <button className="kart-home-back" onClick={onBack}>Back to Romp</button>}
+        <button className="kart-home-back" onClick={() => navigate("/")}>Back to Romp</button>
         <h1 className="kart-home-title">Kart Clash</h1>
         <p className="kart-home-subtitle">Drift. Blast. Respawn.</p>
-        <div className="kart-home-playing-as">Playing as <strong>{playerName}</strong></div>
+        {playerName && <div className="kart-home-playing-as">Playing as <strong>{playerName}</strong></div>}
 
         {mode === null && (
           <div className="kart-home-buttons">
-            <button className="kart-home-btn kart-home-btn-primary" onClick={handleCreate} disabled={pending}>
+            <button className="kart-home-btn kart-home-btn-primary" onClick={handleCreate} disabled={pending || !playerName}>
               {pending ? "Creating..." : "Create Room"}
             </button>
             <button className="kart-home-btn kart-home-btn-secondary" onClick={() => setMode("join")} disabled={pending}>
@@ -88,19 +78,15 @@ export default function KartHome({ playerName, onJoined, onBack }) {
               placeholder="Room code"
               value={code}
               maxLength={6}
-              onChange={(event) => setCode(event.target.value.toUpperCase())}
-              onKeyDown={(event) => event.key === "Enter" && handleJoin()}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               autoFocus
             />
             <div className="kart-home-buttons">
               <button className="kart-home-btn kart-home-btn-primary" onClick={handleJoin} disabled={pending}>
                 {pending ? "Joining..." : "Join"}
               </button>
-              <button
-                className="kart-home-btn kart-home-btn-ghost"
-                onClick={() => { setMode(null); setCode(""); setError(""); }}
-                disabled={pending}
-              >
+              <button className="kart-home-btn kart-home-btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>
                 Back
               </button>
             </div>

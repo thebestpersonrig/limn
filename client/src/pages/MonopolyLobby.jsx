@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, clearSession } from "../hooks/useSocket";
 import "./MonopolyLobby.css";
 
 const MODE_LABELS = { classic: "Classic", speed: "Speed", simplified: "Simple" };
 const PLAYER_COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c"];
 
 export default function MonopolyLobby({ code, roomState }) {
+  const navigate = useNavigate();
   const [players, setPlayers] = useState(roomState?.players ?? []);
   const [error,   setError]   = useState("");
   const [copied,  setCopied]  = useState(false);
@@ -51,6 +53,7 @@ export default function MonopolyLobby({ code, roomState }) {
   return (
     <div className="mono-lobby">
       <div className="mono-lobby-card">
+        <button className="mono-lobby-back" onClick={() => { clearSession(); navigate("/"); }}>Back to Romp</button>
         <h2 className="mono-lobby-title">Monopoly</h2>
 
         <div className="mono-lobby-code-row">

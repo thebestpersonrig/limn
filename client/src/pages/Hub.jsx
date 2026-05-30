@@ -11,6 +11,7 @@ const GAMES = [
     players: "2 – 8 players",
     emoji: "🎨",
     color: "#6c63ff",
+    mode: "multiplayer",
     available: true,
   },
   {
@@ -21,6 +22,7 @@ const GAMES = [
     players: "2 – 6 players",
     emoji: "🏠",
     color: "#00A651",
+    mode: "multiplayer",
     available: true,
   },
   {
@@ -31,6 +33,7 @@ const GAMES = [
     players: "4 – 12 players",
     emoji: "🔪",
     color: "#dc2626",
+    mode: "multiplayer",
     available: true,
   },
   {
@@ -41,6 +44,40 @@ const GAMES = [
     players: "2+ players",
     emoji: "KC",
     color: "#22d3ee",
+    mode: "multiplayer",
+    available: true,
+  },
+  {
+    id: "tictactoe",
+    name: "Tic-Tac-Toe",
+    tagline: "Classic Strategy",
+    description: "The timeless game of X's and O's. Play against a friend or challenge the AI.",
+    players: "1 – 2 players",
+    emoji: "❌",
+    color: "#5b7cfa",
+    mode: "both",
+    available: true,
+  },
+  {
+    id: "battleship",
+    name: "Battleship",
+    tagline: "Naval Warfare",
+    description: "Place your fleet and sink the enemy. Classic grid combat for two.",
+    players: "2 players",
+    emoji: "\u{1F6A2}",
+    color: "#0ea5e9",
+    mode: "multiplayer",
+    available: true,
+  },
+  {
+    id: "snake",
+    name: "Snake",
+    tagline: "Arcade Classic",
+    description: "Eat, grow, survive. Pick your skin, set the difficulty, and chase your high score.",
+    players: "1 player",
+    emoji: "🐍",
+    color: "#22c55e",
+    mode: "singleplayer",
     available: true,
   },
 ];
@@ -104,9 +141,17 @@ export default function Hub({ playerName, onNameChange, onSelectGame }) {
             key={game.id}
             className={`game-card ${game.available ? "game-card--active" : "game-card--soon"}`}
             style={{ "--card-color": game.color }}
-            onClick={() => game.available && playerName && onSelectGame(game.id)}
+            onClick={() => {
+              if (!game.available) return;
+              const needsName = game.mode === "multiplayer";
+              if (needsName && !playerName) return;
+              onSelectGame(game.id);
+            }}
           >
             <div className="game-card-accent" />
+            <div className="game-card-mode-badge" data-mode={game.mode}>
+              {game.mode === "multiplayer" ? "Multiplayer" : game.mode === "singleplayer" ? "Single Player" : "Single / Multi"}
+            </div>
             <div className="game-card-body">
               <span className="game-card-emoji">{game.emoji}</span>
               <div className="game-card-info">

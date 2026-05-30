@@ -29,6 +29,12 @@
   color: #fff;
   margin: 0;
   font-family: 'Georgia', serif;
+  animation: hub-logo-in 0.6s ease-out;
+}
+
+@keyframes hub-logo-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .hub-tagline {
@@ -159,6 +165,19 @@
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   display: flex;
   flex-direction: column;
+  animation: hub-card-in 0.4s ease-out both;
+}
+.game-card:nth-child(1) { animation-delay: 0.0s; }
+.game-card:nth-child(2) { animation-delay: 0.05s; }
+.game-card:nth-child(3) { animation-delay: 0.1s; }
+.game-card:nth-child(4) { animation-delay: 0.15s; }
+.game-card:nth-child(5) { animation-delay: 0.2s; }
+.game-card:nth-child(6) { animation-delay: 0.25s; }
+.game-card:nth-child(7) { animation-delay: 0.3s; }
+
+@keyframes hub-card-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .game-card--active {
@@ -168,7 +187,12 @@
 .game-card--active:hover {
   transform: translateY(-5px);
   border-color: var(--card-color);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px color-mix(in srgb, var(--card-color) 15%, transparent);
+}
+
+.game-card--active:hover .game-card-accent {
+  height: 4px;
+  box-shadow: 0 0 12px var(--card-color);
 }
 
 .game-card--soon {
@@ -180,6 +204,29 @@
   height: 3px;
   background: var(--card-color);
   flex-shrink: 0;
+  transition: height 0.18s ease, box-shadow 0.18s ease;
+}
+
+.game-card-mode-badge {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #aab;
+  background: #15151f;
+}
+.game-card-mode-badge[data-mode="multiplayer"] {
+  color: #6c9fff;
+  background: rgba(108,159,255,0.08);
+}
+.game-card-mode-badge[data-mode="singleplayer"] {
+  color: #4ade80;
+  background: rgba(74,222,128,0.08);
+}
+.game-card-mode-badge[data-mode="both"] {
+  color: #c084fc;
+  background: rgba(192,132,252,0.08);
 }
 
 .game-card-body {
@@ -281,6 +328,22 @@
   font-style: italic;
 }
 
+/* ── Name prompt polish ───────────────────────────────── */
+.name-overlay {
+  animation: name-overlay-in 0.25s ease-out;
+}
+@keyframes name-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.name-card {
+  animation: name-card-in 0.3s ease-out;
+}
+@keyframes name-card-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 600px) {
   .hub {
@@ -294,5 +357,9 @@
   }
   .hub-grid {
     grid-template-columns: 1fr;
+  }
+  .hub-name-chip {
+    position: static;
+    margin-top: 8px;
   }
 }

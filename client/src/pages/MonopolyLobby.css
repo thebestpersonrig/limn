@@ -16,6 +16,20 @@
   text-align: center;
 }
 
+.mono-lobby-back {
+  display: block;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
+  text-align: left;
+  transition: color 0.15s;
+}
+.mono-lobby-back:hover { color: #888; }
+
 .mono-lobby-title {
   font-size: 28px;
   font-weight: 800;

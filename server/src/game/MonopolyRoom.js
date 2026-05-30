@@ -59,6 +59,9 @@ export class MonopolyRoom {
 
     // Log of game events for clients
     this.log = [];
+
+    // Chat messages
+    this.chat = [];
   }
 
   // ── Player lifecycle ──────────────────────────────────────
@@ -1246,6 +1249,20 @@ export class MonopolyRoom {
     this.log.push(entry);
     if (this.log.length > 200) this.log.shift();
     this.broadcast("monopoly-log", { entry });
+  }
+
+  addChat(socketId, text) {
+    const player = this.players.get(socketId);
+    if (!player) return;
+    const msg = {
+      sender: player.name,
+      senderId: socketId,
+      text: String(text).slice(0, 200),
+      timestamp: Date.now(),
+    };
+    this.chat.push(msg);
+    if (this.chat.length > 50) this.chat.shift();
+    this.broadcast("monopoly-chat-msg", msg);
   }
 
   broadcast(event, data) { this.io.to(this.code).emit(event, data); }

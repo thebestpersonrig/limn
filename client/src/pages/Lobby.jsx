@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, clearSession } from "../hooks/useSocket";
 import "./Lobby.css";
 
 const ROUND_OPTIONS = [2, 3, 4, 5];
 const TIMER_OPTIONS = [45, 60, 80, 120];
 
 export default function Lobby({ code, roomState, playerName }) {
+  const navigate = useNavigate();
   const [players,     setPlayers]     = useState(roomState?.players ?? []);
   const [error,       setError]       = useState("");
   const [copied,      setCopied]      = useState(false);
@@ -49,9 +51,15 @@ export default function Lobby({ code, roomState, playerName }) {
     });
   }
 
+  function handleLeave() {
+    clearSession();
+    navigate("/");
+  }
+
   return (
     <div className="lobby">
       <div className="lobby-card">
+        <button className="lobby-back" onClick={handleLeave}>Back to Romp</button>
         <h2 className="lobby-title">Limn</h2>
 
         <div className="lobby-code-row">
@@ -74,34 +82,34 @@ export default function Lobby({ code, roomState, playerName }) {
           ))}
         </div>
 
-        {isHost && (
-          <div className="lobby-settings">
-            <div className="setting-row">
-              <span className="setting-label">Rounds</span>
-              <div className="setting-options">
-                {ROUND_OPTIONS.map(r => (
-                  <button
-                    key={r}
-                    className={`setting-btn ${rounds === r ? "active" : ""}`}
-                    onClick={() => setRounds(r)}
-                  >{r}</button>
-                ))}
-              </div>
-            </div>
-            <div className="setting-row">
-              <span className="setting-label">Time</span>
-              <div className="setting-options">
-                {TIMER_OPTIONS.map(t => (
-                  <button
-                    key={t}
-                    className={`setting-btn ${timer === t ? "active" : ""}`}
-                    onClick={() => setTimer(t)}
-                  >{t}s</button>
-                ))}
-              </div>
+        <div className="lobby-settings">
+          <div className="setting-row">
+            <span className="setting-label">Rounds</span>
+            <div className="setting-options">
+              {ROUND_OPTIONS.map(r => (
+                <button
+                  key={r}
+                  className={`setting-btn ${rounds === r ? "active" : ""}`}
+                  onClick={() => isHost && setRounds(r)}
+                  disabled={!isHost}
+                >{r}</button>
+              ))}
             </div>
           </div>
-        )}
+          <div className="setting-row">
+            <span className="setting-label">Time</span>
+            <div className="setting-options">
+              {TIMER_OPTIONS.map(t => (
+                <button
+                  key={t}
+                  className={`setting-btn ${timer === t ? "active" : ""}`}
+                  onClick={() => isHost && setTimer(t)}
+                  disabled={!isHost}
+                >{t}s</button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {error && <p className="lobby-error">{error}</p>}
 

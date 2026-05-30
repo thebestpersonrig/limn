@@ -1,59 +1,61 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getSocket } from "../hooks/useSocket";
+import { getSocket, getSavedName, clearSession } from "../hooks/useSocket";
+import { useKartStore } from "../kart/kartStore";
 import KartBattle from "./KartBattle";
 import "./KartHome.css";
 
-export default function KartRoomPage({
-  sessionData,
-  playerName,
-  onJoined,
-  onBackToHub,
-}) {
+export default function KartRoomPage({ sessionData }) {
   const { code } = useParams();
   const navigate = useNavigate();
-  const [joining, setJoining] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const playerName = getSavedName() || "Racer";
 
   useEffect(() => {
-    if (sessionData && sessionData.code === code.toUpperCase()) return;
-    if (!playerName) { navigate("/"); return; }
-    if (joining) return;
+    // If we have session data matching this room, we're already in
+    if (sessionData && sessionData.code === code.toUpperCase()) {
+      if (sessionData.playerId && sessionData.snapshot) {
+        useKartStore.getState().setJoined(sessionData.playerId, sessionData.snapshot);
+      }
+      setReady(true);
+      return;
+    }
 
-    setJoining(true);
-    setError("");
-
+    // Otherwise try to join
     const socket = getSocket();
 
     function doJoin() {
       socket.emit("kart-join-room", { name: playerName, code: code.toUpperCase() });
 
-      function onJoinedRoom({ code: roomCode, roomState, playerId, snapshot }) {
-        socket.off("kart-error", onJoinError);
-        setJoining(false);
-        onJoined({ code: roomCode, roomState, playerId, snapshot });
+      function onJoined({ playerId, snapshot }) {
+        socket.off("kart-error", onError);
+        useKartStore.getState().setJoined(playerId, snapshot);
+        setReady(true);
       }
-      function onJoinError({ message }) {
-        socket.off("kart-joined-room", onJoinedRoom);
-        setJoining(false);
+      function onError({ message }) {
+        socket.off("kart-joined-room", onJoined);
         setError(message);
       }
 
-      socket.once("kart-joined-room", onJoinedRoom);
-      socket.once("kart-error", onJoinError);
+      socket.once("kart-joined-room", onJoined);
+      socket.once("kart-error", onError);
     }
 
     if (!socket.connected) {
       socket.connect();
       socket.once("connect", doJoin);
-      socket.once("connect_error", () => {
-        setJoining(false);
-        setError("Can't reach the server.");
-      });
+      socket.once("connect_error", () => setError("Can't reach the server."));
     } else {
       doJoin();
     }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleBack() {
+    clearSession();
+    useKartStore.getState().resetKart();
+    navigate("/");
+  }
 
   if (error) {
     return (
@@ -69,7 +71,7 @@ export default function KartRoomPage({
     );
   }
 
-  if (joining || !sessionData) {
+  if (!ready) {
     return (
       <div className="kart-home">
         <div className="kart-home-card">
@@ -82,11 +84,9 @@ export default function KartRoomPage({
 
   return (
     <KartBattle
-      code={sessionData.code}
+      code={code.toUpperCase()}
       playerName={playerName}
-      playerId={sessionData.playerId}
-      snapshot={sessionData.snapshot}
-      onBack={onBackToHub}
+      onBack={handleBack}
     />
   );
 }

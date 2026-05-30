@@ -3,6 +3,13 @@ const SNAPSHOT_RATE = 20;
 const ARENA_RADIUS = 42;
 const MIN_PLAYERS = 2;
 const RESPAWN_DELAY = 3000;
+const KART_COLLISION_RADIUS = 2.4;
+const KART_BUMP_DAMAGE = 8;
+const KART_BUMP_FORCE = 6;
+const KART_BUMP_COOLDOWN = 600;
+const IDLE_TIMEOUT = 45000;
+const SURVIVAL_POINTS_INTERVAL = 10000;
+const SURVIVAL_POINTS = 10;
 
 const WEAPONS = {
   rocket: { ammo: 3, cooldown: 700, damage: 55, speed: 34, radius: 4.8, lifetime: 2600 },
@@ -94,6 +101,10 @@ export class KartArena {
       lastProcessedInput: 0,
       input: defaultInput(),
       lastFireAt: 0,
+      lastBumpAt: 0,
+      lastInputAt: Date.now(),
+      lastSurvivalAt: Date.now(),
+      damageEvents: [],
     };
     this.players.set(id, player);
     this.checkStart();
@@ -128,6 +139,9 @@ export class KartArena {
       dt: clamp(Number(input.dt) || 1 / TICK_RATE, 1 / 120, 1 / 15),
     };
     player.lastProcessedInput = input.sequence;
+    if (input.throttle !== 0 || input.steer !== 0 || input.fire) {
+      player.lastInputAt = Date.now();
+    }
   }
 
   tick(dt) {
@@ -144,6 +158,70 @@ export class KartArena {
       if (this.phase === "playing" && player.input.fire) this.tryFire(player, now);
     }
 
+    // Kart-to-kart collisions
+    if (this.phase === "playing") {
+      const playerArr = [...this.players.values()].filter(p => p.alive);
+      for (let i = 0; i < playerArr.length; i++) {
+        for (let j = i + 1; j < playerArr.length; j++) {
+          const a = playerArr[i], b = playerArr[j];
+          const dist = distance2d(a.position, b.position);
+          if (dist < KART_COLLISION_RADIUS && dist > 0.01) {
+            const nx = (b.position.x - a.position.x) / dist;
+            const nz = (b.position.z - a.position.z) / dist;
+            const overlap = KART_COLLISION_RADIUS - dist;
+            a.position.x -= nx * overlap * 0.5;
+            a.position.z -= nz * overlap * 0.5;
+            b.position.x += nx * overlap * 0.5;
+            b.position.z += nz * overlap * 0.5;
+
+            const relSpeed = Math.abs(
+              (a.velocity.x - b.velocity.x) * nx + (a.velocity.z - b.velocity.z) * nz
+            );
+            if (relSpeed > 4) {
+              a.velocity.x -= nx * KART_BUMP_FORCE * 0.5;
+              a.velocity.z -= nz * KART_BUMP_FORCE * 0.5;
+              b.velocity.x += nx * KART_BUMP_FORCE * 0.5;
+              b.velocity.z += nz * KART_BUMP_FORCE * 0.5;
+              const speedA = Math.hypot(a.velocity.x, a.velocity.z);
+              const speedB = Math.hypot(b.velocity.x, b.velocity.z);
+              if (now - a.lastBumpAt > KART_BUMP_COOLDOWN && speedB > speedA) {
+                a.health -= KART_BUMP_DAMAGE;
+                a.lastBumpAt = now;
+                a.damageEvents.push({ amount: KART_BUMP_DAMAGE, from: b.id, at: now });
+                if (a.health <= 0) this.damagePlayer(a, 0, b.id, "ram", now);
+              }
+              if (now - b.lastBumpAt > KART_BUMP_COOLDOWN && speedA > speedB) {
+                b.health -= KART_BUMP_DAMAGE;
+                b.lastBumpAt = now;
+                b.damageEvents.push({ amount: KART_BUMP_DAMAGE, from: a.id, at: now });
+                if (b.health <= 0) this.damagePlayer(b, 0, a.id, "ram", now);
+              }
+            } else {
+              const bounce = 0.3;
+              a.velocity.x -= nx * bounce;
+              a.velocity.z -= nz * bounce;
+              b.velocity.x += nx * bounce;
+              b.velocity.z += nz * bounce;
+            }
+          }
+        }
+      }
+
+      // Survival scoring
+      for (const player of this.players.values()) {
+        if (!player.alive) continue;
+        if (now - player.lastSurvivalAt >= SURVIVAL_POINTS_INTERVAL) {
+          player.score += SURVIVAL_POINTS;
+          player.lastSurvivalAt = now;
+        }
+      }
+    }
+
+    // Clean up old damage events
+    for (const player of this.players.values()) {
+      player.damageEvents = player.damageEvents.filter(e => now - e.at < 2000);
+    }
+
     this.updateProjectiles(dt, now);
     this.explosions = this.explosions.filter((explosion) => now - explosion.createdAt < 520);
     this.killFeed = this.killFeed.filter((event) => now - event.at < 9000);
@@ -154,7 +232,7 @@ export class KartArena {
       serverTime: Date.now(),
       phase: this.phase,
       countdownEndsAt: this.countdownEndsAt,
-      players: [...this.players.values()].map(({ input, lastFireAt, ...player }) => player),
+      players: [...this.players.values()].map(({ input, lastFireAt, lastBumpAt, lastInputAt, lastSurvivalAt, ...player }) => player),
       projectiles: [...this.projectiles.values()],
       pickups: this.pickups,
       explosions: this.explosions,
@@ -316,6 +394,7 @@ export class KartArena {
       const dist = distance2d(player.position, projectile.position);
       if (dist > stats.radius) continue;
       const damage = Math.ceil(stats.damage * Math.max(0.35, 1 - dist / stats.radius));
+      player.damageEvents.push({ amount: damage, from: projectile.ownerId, at: now });
       this.damagePlayer(player, damage, projectile.ownerId, projectile.type, now);
     }
   }

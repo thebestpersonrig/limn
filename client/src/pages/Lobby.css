@@ -19,6 +19,18 @@
   gap: 20px;
 }
 
+.lobby-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.lobby-back:hover { color: #888; }
+
 .lobby-title {
   font-size: 36px;
   font-weight: 800;
@@ -209,3 +221,5 @@
   color: #a8a3ff;
   background: rgba(108, 99, 255, 0.12);
 }
+.setting-btn:disabled { cursor: default; opacity: 0.7; }
+.setting-btn:disabled:hover { border-color: #2a2a3a; color: #888; }

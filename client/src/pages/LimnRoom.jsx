@@ -1,34 +1,52 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSocket, saveSession } from "../hooks/useSocket";
+import { getSocket, getSavedName, clearSession } from "../hooks/useSocket";
 import Lobby from "./Lobby";
 import Game from "./Game";
 import GameEnd from "./GameEnd";
 
-/**
- * /limn/:code — smart wrapper that auto-joins via URL
- * then renders Lobby → Game → GameEnd based on gamePhase.
- */
-export default function LimnRoom({
-  sessionData,
-  gamePhase,
-  roundData,
-  finalPlayers,
-  playerName,
-  onJoined,
-  onPlayAgain,
-  onBackToHub,
-}) {
+export default function LimnRoom({ sessionData }) {
   const { code } = useParams();
   const navigate = useNavigate();
-  const [joining, setJoining] = useState(false);
+  const [roomState, setRoomState] = useState(sessionData?.roomState || null);
+  const [gamePhase, setGamePhase] = useState("lobby");
+  const [roundData, setRoundData] = useState(null);
+  const [finalPlayers, setFinalPlayers] = useState(null);
   const [error, setError] = useState("");
+  const [joining, setJoining] = useState(false);
+  const playerName = getSavedName() || "Player";
 
-  // If we navigated here via URL (e.g. shareable link) without session data,
-  // auto-join the room.
   useEffect(() => {
-    if (sessionData && sessionData.code === code.toUpperCase()) return; // already in this room
-    if (!playerName) { navigate("/"); return; } // no name yet
+    const socket = getSocket();
+
+    function onRoomState(state) { setRoomState(state); }
+    function onRoundStart(data) {
+      setRoundData(data);
+      setGamePhase("game");
+    }
+    function onGameEnd({ players }) {
+      setFinalPlayers(players);
+      setGamePhase("end");
+      clearSession();
+    }
+
+    socket.on("room-state", onRoomState);
+    socket.on("round-start", onRoundStart);
+    socket.on("game-end", onGameEnd);
+
+    return () => {
+      socket.off("room-state", onRoomState);
+      socket.off("round-start", onRoundStart);
+      socket.off("game-end", onGameEnd);
+    };
+  }, []);
+
+  // Auto-join if navigating via URL
+  useEffect(() => {
+    if (sessionData && sessionData.code === code.toUpperCase()) {
+      setRoomState(sessionData.roomState);
+      return;
+    }
     if (joining) return;
 
     setJoining(true);
@@ -39,19 +57,19 @@ export default function LimnRoom({
     function doJoin() {
       socket.emit("join-room", { name: playerName, code: code.toUpperCase() });
 
-      function onJoinedRoom({ code: roomCode, roomState }) {
-        socket.off("error", onJoinError);
+      function onJoined({ code: roomCode, roomState: rs }) {
+        socket.off("error", onErr);
         setJoining(false);
-        onJoined({ code: roomCode, roomState });
+        setRoomState(rs);
       }
-      function onJoinError({ message }) {
-        socket.off("joined-room", onJoinedRoom);
+      function onErr({ message }) {
+        socket.off("joined-room", onJoined);
         setJoining(false);
         setError(message);
       }
 
-      socket.once("joined-room", onJoinedRoom);
-      socket.once("error", onJoinError);
+      socket.once("joined-room", onJoined);
+      socket.once("error", onErr);
     }
 
     if (!socket.connected) {
@@ -66,7 +84,11 @@ export default function LimnRoom({
     }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Error state
+  function handleBack() {
+    clearSession();
+    navigate("/");
+  }
+
   if (error) {
     return (
       <div className="home">
@@ -81,25 +103,23 @@ export default function LimnRoom({
     );
   }
 
-  // Joining state
-  if (joining || !sessionData) {
+  if (joining || !roomState) {
     return (
       <div className="home">
         <div className="home-card">
           <h1 className="home-title">Limn</h1>
-          <p className="home-subtitle">Joining room {code.toUpperCase()}…</p>
+          <p className="home-subtitle">Joining room {code.toUpperCase()}...</p>
         </div>
       </div>
     );
   }
 
-  // ── Render based on game phase ──
   if (gamePhase === "end" && finalPlayers) {
     return (
       <GameEnd
         players={finalPlayers}
-        onPlayAgain={onPlayAgain}
-        onBackToHub={onBackToHub}
+        onPlayAgain={() => { setGamePhase("lobby"); setFinalPlayers(null); }}
+        onBackToHub={handleBack}
       />
     );
   }
@@ -108,12 +128,11 @@ export default function LimnRoom({
     return <Game initialRoundData={roundData} />;
   }
 
-  // Default: lobby
   return (
     <Lobby
-      code={sessionData.code}
-      roomState={sessionData.roomState}
-      playerName={sessionData.playerName}
+      code={code.toUpperCase()}
+      roomState={roomState}
+      playerName={playerName}
     />
   );
 }

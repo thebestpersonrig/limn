@@ -1,27 +1,48 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSocket } from "../hooks/useSocket";
+import { getSocket, getSavedName, clearSession } from "../hooks/useSocket";
 import MonopolyLobby from "./MonopolyLobby";
 import MonopolyGame from "./MonopolyGame";
 import MonopolyEnd from "./MonopolyEnd";
 
-export default function MonopolyRoomPage({
-  sessionData,
-  gamePhase,
-  monopolyEnd,
-  playerName,
-  onJoined,
-  onPlayAgain,
-  onBackToHub,
-}) {
+export default function MonopolyRoomPage({ sessionData }) {
   const { code } = useParams();
   const navigate = useNavigate();
-  const [joining, setJoining] = useState(false);
+  const [roomState, setRoomState] = useState(sessionData?.roomState || null);
+  const [gamePhase, setGamePhase] = useState("lobby");
+  const [monopolyEnd, setMonopolyEnd] = useState(null);
   const [error, setError] = useState("");
+  const [joining, setJoining] = useState(false);
+  const playerName = getSavedName() || "Player";
 
   useEffect(() => {
-    if (sessionData && sessionData.code === code.toUpperCase()) return;
-    if (!playerName) { navigate("/"); return; }
+    const socket = getSocket();
+
+    function onRoomState(state) { setRoomState(state); }
+    function onGameStart() { setGamePhase("game"); }
+    function onGameEnd({ winnerId, standings }) {
+      setMonopolyEnd({ winnerId, standings });
+      setGamePhase("end");
+      clearSession();
+    }
+
+    socket.on("monopoly-room-state", onRoomState);
+    socket.on("monopoly-game-start", onGameStart);
+    socket.on("monopoly-game-end", onGameEnd);
+
+    return () => {
+      socket.off("monopoly-room-state", onRoomState);
+      socket.off("monopoly-game-start", onGameStart);
+      socket.off("monopoly-game-end", onGameEnd);
+    };
+  }, []);
+
+  // Auto-join if navigating via URL
+  useEffect(() => {
+    if (sessionData && sessionData.code === code.toUpperCase()) {
+      setRoomState(sessionData.roomState);
+      return;
+    }
     if (joining) return;
 
     setJoining(true);
@@ -32,19 +53,19 @@ export default function MonopolyRoomPage({
     function doJoin() {
       socket.emit("monopoly-join-room", { name: playerName, code: code.toUpperCase() });
 
-      function onJoinedRoom({ code: roomCode, roomState }) {
-        socket.off("monopoly-error", onJoinError);
+      function onJoined({ code: roomCode, roomState: rs }) {
+        socket.off("monopoly-error", onErr);
         setJoining(false);
-        onJoined({ code: roomCode, roomState });
+        setRoomState(rs);
       }
-      function onJoinError({ message }) {
-        socket.off("monopoly-joined-room", onJoinedRoom);
+      function onErr({ message }) {
+        socket.off("monopoly-joined-room", onJoined);
         setJoining(false);
         setError(message);
       }
 
-      socket.once("monopoly-joined-room", onJoinedRoom);
-      socket.once("monopoly-error", onJoinError);
+      socket.once("monopoly-joined-room", onJoined);
+      socket.once("monopoly-error", onErr);
     }
 
     if (!socket.connected) {
@@ -58,6 +79,11 @@ export default function MonopolyRoomPage({
       doJoin();
     }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleBack() {
+    clearSession();
+    navigate("/");
+  }
 
   if (error) {
     return (
@@ -73,12 +99,12 @@ export default function MonopolyRoomPage({
     );
   }
 
-  if (joining || !sessionData) {
+  if (joining || !roomState) {
     return (
       <div className="mono-home">
         <div className="mono-home-card">
           <h1 className="mono-title">Monopoly</h1>
-          <p className="mono-subtitle">Joining room {code.toUpperCase()}…</p>
+          <p className="mono-subtitle">Joining room {code.toUpperCase()}...</p>
         </div>
       </div>
     );
@@ -89,8 +115,8 @@ export default function MonopolyRoomPage({
       <MonopolyEnd
         winnerId={monopolyEnd.winnerId}
         standings={monopolyEnd.standings}
-        onPlayAgain={onPlayAgain}
-        onBackToHub={onBackToHub}
+        onPlayAgain={() => { setGamePhase("lobby"); setMonopolyEnd(null); }}
+        onBackToHub={handleBack}
       />
     );
   }
@@ -101,8 +127,8 @@ export default function MonopolyRoomPage({
 
   return (
     <MonopolyLobby
-      code={sessionData.code}
-      roomState={sessionData.roomState}
+      code={code.toUpperCase()}
+      roomState={roomState}
     />
   );
 }

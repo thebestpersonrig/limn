@@ -1,32 +1,56 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSocket } from "../hooks/useSocket";
+import { getSocket, getSavedName, clearSession } from "../hooks/useSocket";
 import MafiaLobby from "./MafiaLobby";
 import MafiaGame from "./MafiaGame";
 import MafiaEnd from "./MafiaEnd";
 
-/**
- * /mafia/:code — smart wrapper that auto-joins via URL
- * then renders MafiaLobby → MafiaGame → MafiaEnd based on gamePhase.
- */
-export default function MafiaRoomPage({
-  sessionData,
-  gamePhase,
-  mafiaEnd,
-  mafiaRole,
-  playerName,
-  onJoined,
-  onPlayAgain,
-  onBackToHub,
-}) {
+export default function MafiaRoomPage({ sessionData }) {
   const { code } = useParams();
   const navigate = useNavigate();
-  const [joining, setJoining] = useState(false);
+  const [roomState, setRoomState] = useState(sessionData?.roomState || null);
+  const [gamePhase, setGamePhase] = useState("lobby");
+  const [mafiaRole, setMafiaRole] = useState(null);
+  const [mafiaEnd, setMafiaEnd] = useState(null);
   const [error, setError] = useState("");
+  const [joining, setJoining] = useState(false);
+  const playerName = getSavedName() || "Player";
 
   useEffect(() => {
-    if (sessionData && sessionData.code === code.toUpperCase()) return;
-    if (!playerName) { navigate("/"); return; }
+    const socket = getSocket();
+
+    function onRoomState(state) { setRoomState(state); }
+    function onRoleAssigned({ role, mafiaTeam }) {
+      setMafiaRole({ role, mafiaTeam });
+    }
+    function onPhase({ phase }) {
+      if (phase === "roleReveal") setGamePhase("game");
+    }
+    function onGameEnd({ winner, players }) {
+      setMafiaEnd({ winner, players });
+      setGamePhase("end");
+      clearSession();
+    }
+
+    socket.on("mafia-room-state", onRoomState);
+    socket.on("mafia-role-assigned", onRoleAssigned);
+    socket.on("mafia-phase", onPhase);
+    socket.on("mafia-game-end", onGameEnd);
+
+    return () => {
+      socket.off("mafia-room-state", onRoomState);
+      socket.off("mafia-role-assigned", onRoleAssigned);
+      socket.off("mafia-phase", onPhase);
+      socket.off("mafia-game-end", onGameEnd);
+    };
+  }, []);
+
+  // Auto-join if navigating via URL
+  useEffect(() => {
+    if (sessionData && sessionData.code === code.toUpperCase()) {
+      setRoomState(sessionData.roomState);
+      return;
+    }
     if (joining) return;
 
     setJoining(true);
@@ -37,19 +61,19 @@ export default function MafiaRoomPage({
     function doJoin() {
       socket.emit("mafia-join-room", { name: playerName, code: code.toUpperCase() });
 
-      function onJoinedRoom({ code: roomCode, roomState }) {
-        socket.off("mafia-error", onJoinError);
+      function onJoined({ code: roomCode, roomState: rs }) {
+        socket.off("mafia-error", onErr);
         setJoining(false);
-        onJoined({ code: roomCode, roomState });
+        setRoomState(rs);
       }
-      function onJoinError({ message }) {
-        socket.off("mafia-joined-room", onJoinedRoom);
+      function onErr({ message }) {
+        socket.off("mafia-joined-room", onJoined);
         setJoining(false);
         setError(message);
       }
 
-      socket.once("mafia-joined-room", onJoinedRoom);
-      socket.once("mafia-error", onJoinError);
+      socket.once("mafia-joined-room", onJoined);
+      socket.once("mafia-error", onErr);
     }
 
     if (!socket.connected) {
@@ -63,6 +87,11 @@ export default function MafiaRoomPage({
       doJoin();
     }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleBack() {
+    clearSession();
+    navigate("/");
+  }
 
   if (error) {
     return (
@@ -78,12 +107,12 @@ export default function MafiaRoomPage({
     );
   }
 
-  if (joining || !sessionData) {
+  if (joining || !roomState) {
     return (
       <div className="mafia-home">
         <div className="mafia-home-card">
           <h1 className="mafia-title">Mafia</h1>
-          <p className="mafia-subtitle">Joining room {code.toUpperCase()}…</p>
+          <p className="mafia-subtitle">Joining room {code.toUpperCase()}...</p>
         </div>
       </div>
     );
@@ -94,8 +123,8 @@ export default function MafiaRoomPage({
       <MafiaEnd
         winner={mafiaEnd.winner}
         players={mafiaEnd.players}
-        onPlayAgain={onPlayAgain}
-        onBackToHub={onBackToHub}
+        onPlayAgain={() => { setGamePhase("lobby"); setMafiaEnd(null); setMafiaRole(null); }}
+        onBackToHub={handleBack}
       />
     );
   }
@@ -106,9 +135,9 @@ export default function MafiaRoomPage({
 
   return (
     <MafiaLobby
-      code={sessionData.code}
-      roomState={sessionData.roomState}
-      playerName={sessionData.playerName}
+      code={code.toUpperCase()}
+      roomState={roomState}
+      playerName={playerName}
     />
   );
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, clearSession } from "../hooks/useSocket";
 import "./MafiaLobby.css";
 
 export default function MafiaLobby({ code, roomState, playerName }) {
+  const navigate = useNavigate();
   const [players, setPlayers] = useState(roomState?.players ?? []);
   const [error,   setError]   = useState("");
   const [copied,  setCopied]  = useState(false);
@@ -51,6 +53,7 @@ export default function MafiaLobby({ code, roomState, playerName }) {
   return (
     <div className="mlobby">
       <div className="mlobby-card">
+        <button className="mlobby-back" onClick={() => { clearSession(); navigate("/"); }}>Back to Romp</button>
         <h2 className="mlobby-title">Mafia</h2>
 
         <div className="mlobby-code-row">

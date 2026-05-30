@@ -1,33 +1,34 @@
 import { useState } from "react";
-import { getSocket } from "../hooks/useSocket";
+import { useNavigate } from "react-router-dom";
+import { getSocket, saveSession } from "../hooks/useSocket";
 import "./Home.css";
 
-export default function Home({ playerName, onJoined, onBack }) {
+export default function Home({ playerName }) {
+  const navigate = useNavigate();
   const [code,    setCode]    = useState("");
   const [mode,    setMode]    = useState(null); // "create" | "join"
   const [error,   setError]   = useState("");
   const [pending, setPending] = useState(false);
 
-  // No URL parsing needed — /limn/:code routes handle join links directly
-
   function connect(cb) {
     const socket = getSocket();
     if (!socket.connected) {
       socket.connect();
-      socket.once("connect", () => {
-        socket.off("connect_error", onErr);
-        cb();
-      });
-      function onErr(err) {
+      socket.once("connect", () => { socket.off("connect_error", onErr); cb(); });
+      function onErr() {
         socket.off("connect", cb);
         setPending(false);
-        setError("Can't reach the server — try again in a moment.");
-        console.error("Socket connect error:", err.message);
+        setError("Can't reach the server - try again in a moment.");
       }
       socket.once("connect_error", onErr);
     } else {
       cb();
     }
+  }
+
+  function handleJoined({ code: roomCode }) {
+    saveSession(playerName, roomCode, "limn");
+    navigate(`/limn/${roomCode}`);
   }
 
   function handleCreate() {
@@ -36,10 +37,7 @@ export default function Home({ playerName, onJoined, onBack }) {
     connect(() => {
       const socket = getSocket();
       socket.emit("create-room", { name: playerName });
-      socket.once("joined-room", ({ code, roomState }) => {
-        setPending(false);
-        onJoined({ code, roomState });
-      });
+      socket.once("joined-room", (data) => { setPending(false); handleJoined(data); });
       socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
   }
@@ -51,10 +49,7 @@ export default function Home({ playerName, onJoined, onBack }) {
     connect(() => {
       const socket = getSocket();
       socket.emit("join-room", { name: playerName, code: code.trim() });
-      socket.once("joined-room", ({ code, roomState }) => {
-        setPending(false);
-        onJoined({ code, roomState });
-      });
+      socket.once("joined-room", (data) => { setPending(false); handleJoined(data); });
       socket.once("error", ({ message }) => { setPending(false); setError(message); });
     });
   }
@@ -62,15 +57,15 @@ export default function Home({ playerName, onJoined, onBack }) {
   return (
     <div className="home">
       <div className="home-card">
-        {onBack && (
-          <button className="home-back" onClick={onBack}>← Romp</button>
-        )}
+        <button className="home-back" onClick={() => navigate("/")}>Back to Romp</button>
         <h1 className="home-title">Limn</h1>
         <p className="home-subtitle">Draw. Guess. Win.</p>
 
-        <div className="home-playing-as">
-          Playing as <strong>{playerName}</strong>
-        </div>
+        {playerName && (
+          <div className="home-playing-as">
+            Playing as <strong>{playerName}</strong>
+          </div>
+        )}
 
         {mode === "join" && (
           <input
@@ -89,17 +84,17 @@ export default function Home({ playerName, onJoined, onBack }) {
         <div className="home-buttons">
           {mode !== "join" ? (
             <>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={pending}>
-                {pending ? "Creating…" : "Create Room"}
+              <button className="btn btn-primary" onClick={handleCreate} disabled={pending || !playerName}>
+                {pending ? "Creating..." : "Create Room"}
               </button>
-              <button className="btn btn-secondary" onClick={() => setMode("join")} disabled={pending}>
+              <button className="btn btn-secondary" onClick={() => setMode("join")} disabled={pending || !playerName}>
                 Join Room
               </button>
             </>
           ) : (
             <>
               <button className="btn btn-primary" onClick={handleJoin} disabled={pending}>
-                {pending ? "Joining…" : "Join"}
+                {pending ? "Joining..." : "Join"}
               </button>
               <button className="btn btn-ghost" onClick={() => { setMode(null); setCode(""); setError(""); }} disabled={pending}>
                 Back
