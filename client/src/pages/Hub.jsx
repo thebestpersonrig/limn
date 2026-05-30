@@ -37,6 +37,17 @@ const GAMES = [
     available: true,
   },
   {
+    id: "uno",
+    name: "Uno",
+    tagline: "Card Clash",
+    description: "Match colors and numbers, stack penalties, and race to empty your hand first.",
+    players: "2 - 6 players",
+    emoji: "\u{1F0CF}",
+    color: "#f97316",
+    mode: "multiplayer",
+    available: true,
+  },
+  {
     id: "kart",
     name: "Kart Clash",
     tagline: "Arena Combat",
@@ -46,6 +57,7 @@ const GAMES = [
     color: "#22d3ee",
     mode: "multiplayer",
     available: true,
+    external: "https://smashkarts.io",
   },
   {
     id: "tictactoe",
@@ -143,6 +155,7 @@ export default function Hub({ playerName, onNameChange, onSelectGame }) {
             style={{ "--card-color": game.color }}
             onClick={() => {
               if (!game.available) return;
+              if (game.external) { window.open(game.external, "_blank"); return; }
               const needsName = game.mode === "multiplayer";
               if (needsName && !playerName) return;
               onSelectGame(game.id);

@@ -6,12 +6,14 @@ import { MonopolyRoom } from "../game/MonopolyRoom.js";
 import { MonopolyPlayer } from "../game/MonopolyPlayer.js";
 import { KartArena } from "../game/KartArena.js";
 import { BattleshipRoom } from "../game/BattleshipRoom.js";
+import { UnoRoom } from "../game/UnoRoom.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
 const monopolyRooms = new Map();
 const kartRooms = new Map();
 const battleshipRooms = new Map();
+const unoRooms = new Map();
 
 function generateCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -34,6 +36,8 @@ function isRoomValid(roomState) {
   if (!roomState) return false;
 
   return !(
+    roomState.phase === "ended" ||
+    roomState.state === "gameEnd" ||
     roomState.status === "ended" ||
     roomState.gameOver === true ||
     roomState.ended === true
@@ -47,6 +51,7 @@ export function registerHandlers(io) {
     let currentMonopolyCode = null;
     let currentKartCode = null;
     let currentBattleshipCode = null;
+    let currentUnoCode = null;
 
     /* ─────────────────────────────
        LIMN GAME
@@ -54,7 +59,7 @@ export function registerHandlers(io) {
 
     socket.on("create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
         code = generateCode();
       }
       const room = new GameRoom(code, io);
@@ -166,7 +171,7 @@ export function registerHandlers(io) {
 
     socket.on("mafia-create-room", safe(({ name, roleConfig }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
         code = generateCode();
       }
 
@@ -255,7 +260,7 @@ export function registerHandlers(io) {
 
     socket.on("monopoly-create-room", safe(({ name, settings }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
         code = generateCode();
       }
 
@@ -423,7 +428,7 @@ export function registerHandlers(io) {
 
     socket.on("kart-create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
         code = generateCode();
       }
 
@@ -468,7 +473,7 @@ export function registerHandlers(io) {
 
     socket.on("battleship-create-room", safe(({ name, mode }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
         code = generateCode();
       }
 
@@ -585,6 +590,162 @@ export function registerHandlers(io) {
     }
 
     /* ─────────────────────────────
+       UNO GAME
+    ───────────────────────────── */
+
+    socket.on("uno-create-room", safe(({ name }) => {
+      let code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+        code = generateCode();
+      }
+
+      const room = new UnoRoom(code, io);
+      unoRooms.set(code, room);
+
+      joinUnoRoom(socket, room, name || "Player");
+    }));
+
+    socket.on("uno-join-room", safe(({ code, name }) => {
+      const room = unoRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("uno-error", { message: "Room not found." });
+
+      const result = room.addPlayer(socket.id, name || "Player");
+      if (result.error) return socket.emit("uno-error", { message: result.error });
+
+      currentUnoCode = room.code;
+      socket.join(room.code);
+
+      socket.emit("uno-joined-room", {
+        code: room.code,
+        roomState: room.getRoomState(),
+      });
+    }));
+
+    socket.on("uno-rejoin", safe(({ roomCode, name }) => {
+      const room = unoRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("uno-rejoin-failed");
+
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("uno-rejoin-failed");
+
+      room.removePlayer(socket.id);
+      const result = room.addPlayer(socket.id, name || "Player");
+      if (result.error) return socket.emit("uno-rejoin-failed");
+
+      currentUnoCode = room.code;
+      socket.join(room.code);
+
+      socket.emit("uno-rejoined", {
+        code: room.code,
+        roomState: room.getRoomState(),
+      });
+    }));
+
+    socket.on("uno-start-game", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.startGame(socket.id);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-update-rules", safe(({ rules }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.updateRules(socket.id, rules);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-play-card", safe(({ cardIndex, chosenColor, secondCardIndex }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.playCard(socket.id, cardIndex, chosenColor, secondCardIndex);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-draw-card", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.drawCard(socket.id);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-play-drawn", safe(({ chosenColor }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.playDrawnCard(socket.id, chosenColor);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-keep-drawn", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.keepDrawnCard(socket.id);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-call-uno", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.callUno(socket.id);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-catch-uno", safe(({ targetId }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.catchUno(socket.id, targetId);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-jump-in", safe(({ cardIndex }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.jumpIn(socket.id, cardIndex);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-swap-hands", safe(({ targetId }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const result = room.swapHands(socket.id, targetId);
+      if (result.error) socket.emit("uno-error", { message: result.error });
+    }));
+
+    socket.on("uno-get-state", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      const state = room.getPlayerState(socket.id);
+      if (state) socket.emit("uno-game-state", state);
+    }));
+
+    socket.on("uno-chat", safe(({ text }) => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+      room.addChat(socket.id, text);
+    }));
+
+    socket.on("uno-leave", safe(() => {
+      const room = unoRooms.get(currentUnoCode);
+      if (!room) return;
+
+      room.removePlayer(socket.id);
+      socket.leave(room.code);
+      currentUnoCode = null;
+
+      if (room.isEmpty()) unoRooms.delete(room.code);
+    }));
+
+    function joinUnoRoom(sock, room, name) {
+      currentUnoCode = room.code;
+      sock.join(room.code);
+      room.addPlayer(sock.id, name);
+      sock.emit("uno-joined-room", {
+        code: room.code,
+        roomState: room.getRoomState(),
+      });
+    }
+
+    /* ─────────────────────────────
        DISCONNECT
     ───────────────────────────── */
 
@@ -631,6 +792,15 @@ export function registerHandlers(io) {
         if (bRoom) {
           bRoom.removePlayer(socket.id);
           if (bRoom.isEmpty()) battleshipRooms.delete(currentBattleshipCode);
+        }
+      }
+
+      // Uno cleanup
+      if (currentUnoCode) {
+        const uRoom = unoRooms.get(currentUnoCode);
+        if (uRoom) {
+          uRoom.removePlayer(socket.id);
+          if (uRoom.isEmpty()) unoRooms.delete(currentUnoCode);
         }
       }
     });

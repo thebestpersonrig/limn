@@ -1,0 +1,261 @@
+.uno-lobby {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a10;
+  padding: 20px;
+}
+
+.uno-lobby-card {
+  background: #12121a;
+  border: 1px solid #1e2a3a;
+  border-radius: 16px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: uno-card-in 0.35s ease-out;
+}
+@keyframes uno-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.uno-lobby-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.uno-lobby-back:hover { color: #888; }
+
+.uno-lobby-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f97316;
+  margin: 0;
+}
+
+/* ── Code row ────────────────────────── */
+.uno-lobby-code-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.uno-lobby-code-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555;
+}
+
+.uno-lobby-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.uno-lobby-code-badge {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fed7aa;
+  letter-spacing: 4px;
+  background: #0d0d16;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid #1e2a3a;
+}
+
+.uno-lobby-copy-btn {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.uno-lobby-copy-btn:hover { background: rgba(249, 115, 22, 0.2); }
+
+/* ── Player list ─────────────────────── */
+.uno-lobby-player-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.uno-lobby-player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #0d0d16;
+  border-radius: 10px;
+  border: 1px solid #1e2a3a;
+}
+.uno-lobby-player-row--empty {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+.uno-lobby-player-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+}
+
+.uno-lobby-player-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fed7aa;
+  flex: 1;
+  text-align: left;
+}
+
+.uno-lobby-muted { color: #555; font-weight: 400; }
+
+.uno-lobby-host-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* ── House Rules ─────────────────────── */
+.uno-lobby-rules {
+  width: 100%;
+  background: #0d0d16;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.uno-lobby-rules-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555;
+  margin: 0 0 12px;
+}
+
+.uno-lobby-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a28;
+}
+.uno-lobby-rule-row:last-child { border-bottom: none; }
+
+.uno-lobby-rule-info {
+  flex: 1;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.uno-lobby-rule-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.uno-lobby-rule-desc {
+  font-size: 11px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.uno-lobby-rule-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border: 1px solid #2a2a3a;
+  background: #1a1a28;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.uno-lobby-rule-toggle:disabled { cursor: default; opacity: 0.6; }
+.uno-lobby-rule-toggle--on {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: #f97316;
+}
+
+.uno-lobby-rule-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #555;
+  transition: transform 0.2s, background 0.2s;
+}
+.uno-lobby-rule-toggle--on .uno-lobby-rule-toggle-knob {
+  transform: translateX(18px);
+  background: #f97316;
+}
+
+/* ── Actions ─────────────────────────── */
+.uno-lobby-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.uno-lobby-start-btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: #f97316;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.uno-lobby-start-btn:hover:not(:disabled) { opacity: 0.9; }
+.uno-lobby-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.uno-lobby-waiting {
+  color: #555;
+  font-size: 13px;
+  margin: 0;
+  animation: uno-pulse 1.5s ease-in-out infinite;
+}
+@keyframes uno-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+  .uno-lobby-card { padding: 28px 18px; }
+  .uno-lobby-code-badge { font-size: 18px; }
+}
