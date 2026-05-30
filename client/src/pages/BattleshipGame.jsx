@@ -624,7 +624,7 @@ export default function BattleshipGame({ code, roomState, playerName, onBack }) 
   const socket = getSocket();
   const playerId = socket.id;
   const [gameState, setGameState] = useState(null);
-  const [phase, setPhase] = useState(roomState?.phase || "placing");
+  const [phase, setPhase] = useState("placing");
 
   useEffect(() => {
     function onGameState(state) {
@@ -637,6 +637,9 @@ export default function BattleshipGame({ code, roomState, playerName, onBack }) 
 
     socket.on("battleship-game-state", onGameState);
     socket.on("battleship-phase", onPhase);
+
+    // Request current state in case we missed the initial emit
+    socket.emit("battleship-get-state");
 
     return () => {
       socket.off("battleship-game-state", onGameState);

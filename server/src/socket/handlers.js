@@ -547,6 +547,13 @@ export function registerHandlers(io) {
       if (result.error) socket.emit("battleship-error", { message: result.error });
     }));
 
+    socket.on("battleship-get-state", safe(() => {
+      const room = battleshipRooms.get(currentBattleshipCode);
+      if (!room) return;
+      const state = room.getPlayerState(socket.id);
+      if (state) socket.emit("battleship-game-state", state);
+    }));
+
     socket.on("battleship-chat", safe(({ text }) => {
       const room = battleshipRooms.get(currentBattleshipCode);
       if (!room) return;
