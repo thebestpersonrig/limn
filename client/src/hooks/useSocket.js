@@ -17,6 +17,7 @@ export function getSocket() {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
       pingTimeout: 30000,
+      transports: ["websocket", "polling"],
     });
   }
   return socket;
