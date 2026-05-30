@@ -1,0 +1,120 @@
+.snk-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.15), transparent 28%),
+              radial-gradient(circle at bottom right, rgba(255,255,255,0.10), transparent 22%),
+              linear-gradient(135deg, #1a6b3a, #0d3d20);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: clamp(50px, 8vh, 76px) clamp(10px, 3vw, 24px) clamp(12px, 3vh, 28px);
+  position: relative; color: #fff;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.snk-back {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; padding: 8px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s; z-index: 10;
+}
+.snk-back:hover { background: rgba(255,255,255,0.22); }
+
+.snk-settings-screen {
+  display: none; flex-direction: column; align-items: center;
+  gap: 20px; width: 100%; max-width: 400px;
+}
+.snk-settings-screen.active { display: flex; }
+.snk-title {
+  margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem);
+  text-align: center; text-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+.snk-form { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.snk-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
+.snk-field select {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px; color: #fff; padding: 10px 12px;
+  font-size: 1rem; font-family: inherit; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+}
+.snk-field select option { background: #1a3d2a; color: #fff; }
+
+.snk-game-screen {
+  display: none; flex-direction: column; align-items: center;
+  gap: clamp(6px, 1.4vh, 12px); width: 100%;
+}
+.snk-game-screen.active { display: flex; }
+
+.snk-hud {
+  display: flex; gap: clamp(14px, 3vw, 28px); align-items: center;
+  font-size: clamp(0.8rem, 2.4vw, 0.95rem);
+  background: rgba(0,0,0,0.28); padding: 5px 18px; border-radius: 999px;
+}
+.snk-diff-badge {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+  padding: 2px 8px; border-radius: 999px; text-transform: uppercase;
+}
+.snk-diff-badge.easy   { background: #22c55e33; color: #4ade80; }
+.snk-diff-badge.medium { background: #f59e0b33; color: #fbbf24; }
+.snk-diff-badge.hard   { background: #ef444433; color: #f87171; }
+
+.snk-canvas-wrap {
+  position: relative;
+  width: min(min(100vw - 20px, 100dvh - 200px), 640px);
+  aspect-ratio: 1;
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+}
+@media (pointer: coarse) {
+  .snk-canvas-wrap { width: min(100vw - 20px, calc(100dvh - clamp(260px, 42vh, 320px))); }
+}
+#snake-canvas { display: block; width: 100%; height: 100%; }
+
+.snk-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.65);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; border-radius: 14px;
+}
+.snk-overlay[hidden] { display: none; }
+#overlay-msg {
+  margin: 0; font-size: clamp(1rem, 4vw, 1.4rem);
+  font-weight: 700; text-align: center; padding: 0 16px;
+  white-space: pre-line;
+}
+
+.snk-controls-row { display: flex; gap: 12px; }
+
+.snk-dpad { display: none; }
+@media (pointer: coarse) {
+  .snk-dpad {
+    display: grid;
+    grid-template-areas: ". up ." "left . right" ". down .";
+    grid-template-columns: repeat(3, clamp(48px, 13vw, 66px));
+    grid-template-rows: repeat(3, clamp(48px, 13vw, 66px));
+    gap: 5px;
+  }
+}
+.snk-dpad-btn {
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px; color: #fff; font-size: clamp(1rem, 3vw, 1.3rem);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  user-select: none; touch-action: manipulation; transition: background 0.1s;
+}
+.snk-dpad-btn:active { background: rgba(255,255,255,0.32); transform: scale(0.94); }
+.snk-dpad-btn[data-dir="up"]    { grid-area: up; }
+.snk-dpad-btn[data-dir="left"]  { grid-area: left; }
+.snk-dpad-btn[data-dir="down"]  { grid-area: down; }
+.snk-dpad-btn[data-dir="right"] { grid-area: right; }
+
+.snk-btn-primary, .snk-btn-secondary {
+  border: none; border-radius: 12px; font-family: inherit; font-weight: 600;
+  cursor: pointer; transition: transform 0.15s, background 0.15s;
+  min-height: 44px;
+}
+.snk-btn-primary {
+  background: #4ade80; color: #0d3d20;
+  font-size: 1.05rem; padding: 12px 28px; width: 100%;
+}
+.snk-btn-primary:hover { transform: translateY(-2px); background: #22c55e; }
+.snk-btn-secondary {
+  background: rgba(255,255,255,0.15); color: #fff;
+  font-size: 0.9rem; padding: 10px 22px; border: 1px solid rgba(255,255,255,0.2);
+}
+.snk-btn-secondary:hover { background: rgba(255,255,255,0.25); }
