@@ -17,8 +17,14 @@ import BattleshipRoomPage from "./pages/BattleshipRoomPage";
 import UnoHome from "./pages/UnoHome";
 import UnoRoomPage from "./pages/UnoRoomPage";
 
-import SnakeGame from "./pages/SnakeGame";
+import TicTacToeHome from "./pages/TicTacToeHome";
 import TicTacToeGame from "./pages/TicTacToeGame";
+import TicTacToeOnline from "./pages/TicTacToeOnline";
+
+import HangmanHome from "./pages/HangmanHome";
+import HangmanGame from "./pages/HangmanGame";
+
+import SnakeGame from "./pages/SnakeGame";
 
 import {
   getSocket,
@@ -84,7 +90,9 @@ export default function App() {
         path === "/mafia" ||
         path === "/monopoly" ||
         path === "/battleship" ||
-        path === "/uno"
+        path === "/uno" ||
+        path === "/tictactoe" ||
+        path === "/hangman"
       )
         return;
 
@@ -94,6 +102,10 @@ export default function App() {
         s.emit("monopoly-rejoin", session);
       } else if (session.gameType === "battleship") {
         s.emit("battleship-rejoin", session);
+      } else if (session.gameType === "tictactoe") {
+        s.emit("ttt-rejoin", session);
+      } else if (session.gameType === "hangman") {
+        s.emit("hang-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -116,6 +128,8 @@ export default function App() {
     s.on("monopoly-rejoin-failed", onRejoinFailed);
     s.on("battleship-rejoin-failed", onRejoinFailed);
     s.on("uno-rejoin-failed", onRejoinFailed);
+    s.on("ttt-rejoin-failed", onRejoinFailed);
+    s.on("hang-rejoin-failed", onRejoinFailed);
 
     return () => {
       s.off("connect", onConnect);
@@ -126,6 +140,8 @@ export default function App() {
       s.off("monopoly-rejoin-failed", onRejoinFailed);
       s.off("battleship-rejoin-failed", onRejoinFailed);
       s.off("uno-rejoin-failed", onRejoinFailed);
+      s.off("ttt-rejoin-failed", onRejoinFailed);
+      s.off("hang-rejoin-failed", onRejoinFailed);
     };
   }, [navigate]);
 
@@ -145,8 +161,10 @@ export default function App() {
       currentPath === "/monopoly" ||
       currentPath === "/battleship" ||
       currentPath === "/uno" ||
-      currentPath === "/snake" ||
-      currentPath === "/tictactoe"
+      currentPath === "/tictactoe" ||
+      currentPath === "/tictactoe/ai" ||
+      currentPath === "/hangman" ||
+      currentPath === "/snake"
     ) {
       clearSession();
       return;
@@ -165,6 +183,10 @@ export default function App() {
         s.emit("battleship-rejoin", session);
       } else if (session.gameType === "uno") {
         s.emit("uno-rejoin", session);
+      } else if (session.gameType === "tictactoe") {
+        s.emit("ttt-rejoin", session);
+      } else if (session.gameType === "hangman") {
+        s.emit("hang-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -217,11 +239,21 @@ export default function App() {
       safeNavigate(roomState, `/uno/${code}`, { code });
     }
 
+    function onTttRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/tictactoe/${code}`, { code });
+    }
+
+    function onHangRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/hangman/${code}`, { code });
+    }
+
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
     s.once("monopoly-rejoined", onMonopolyRejoined);
     s.once("battleship-rejoined", onBattleshipRejoined);
     s.once("uno-rejoined", onUnoRejoined);
+    s.once("ttt-rejoined", onTttRejoined);
+    s.once("hang-rejoined", onHangRejoined);
 
     if (s.connected) doRejoin();
     else {
@@ -235,6 +267,8 @@ export default function App() {
       s.off("monopoly-rejoined", onMonopolyRejoined);
       s.off("battleship-rejoined", onBattleshipRejoined);
       s.off("uno-rejoined", onUnoRejoined);
+      s.off("ttt-rejoined", onTttRejoined);
+      s.off("hang-rejoined", onHangRejoined);
     };
   }, [navigate]);
 
@@ -252,8 +286,9 @@ export default function App() {
     if (id === "monopoly") navigate("/monopoly");
     if (id === "battleship") navigate("/battleship");
     if (id === "uno") navigate("/uno");
-    if (id === "snake") navigate("/snake");
     if (id === "tictactoe") navigate("/tictactoe");
+    if (id === "hangman") navigate("/hangman");
+    if (id === "snake") navigate("/snake");
   }
 
   function handleBackToHub() {
@@ -263,7 +298,7 @@ export default function App() {
   }
 
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -295,8 +330,14 @@ export default function App() {
         <Route path="/uno" element={<UnoHome />} />
         <Route path="/uno/:code" element={<UnoRoomPage sessionData={sessionData} />} />
 
+        <Route path="/tictactoe" element={<TicTacToeHome playerName={playerName} />} />
+        <Route path="/tictactoe/ai" element={<TicTacToeGame />} />
+        <Route path="/tictactoe/:code" element={<TicTacToeOnline />} />
+
+        <Route path="/hangman" element={<HangmanHome playerName={playerName} />} />
+        <Route path="/hangman/:code" element={<HangmanGame />} />
+
         <Route path="/snake" element={<SnakeGame />} />
-        <Route path="/tictactoe" element={<TicTacToeGame />} />
 
         <Route path="*" element={<Hub playerName={playerName} />} />
       </Routes>

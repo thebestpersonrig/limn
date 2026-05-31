@@ -1,0 +1,115 @@
+.ttt-home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, #1a1a3e, #0a0a10 70%);
+  padding: 20px;
+}
+
+.ttt-home-card {
+  background: #12121a;
+  border: 1px solid #1e2a3a;
+  border-radius: 20px;
+  padding: 40px;
+  width: 400px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ttt-home-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.ttt-home-back:hover { color: #888; }
+
+.ttt-home-title {
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.ttt-home-subtitle {
+  color: #5b7cfa;
+  font-size: 14px;
+  font-weight: 500;
+  margin: -12px 0 0;
+}
+
+.ttt-home-playing-as {
+  font-size: 13px;
+  color: #666;
+}
+
+.ttt-home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.ttt-home-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.ttt-home-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.ttt-home-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ttt-home-btn-primary {
+  background: #5b7cfa;
+  color: #fff;
+}
+
+.ttt-home-btn-secondary {
+  background: #1e2a3a;
+  color: #aaa;
+}
+
+.ttt-home-btn-ghost {
+  background: transparent;
+  color: #555;
+  font-size: 13px;
+}
+
+.ttt-home-input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  background: #0a0a10;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 4px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ttt-home-input:focus { border-color: #5b7cfa; }
+
+.ttt-home-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .ttt-home-card { padding: 28px 20px; }
+}

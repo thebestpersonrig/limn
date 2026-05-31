@@ -47,7 +47,7 @@ export default function MafiaLobby({ code, roomState, playerName }) {
     });
   }
 
-  const minPlayers = (config.mafiaCount || 1) + (config.detective ? 1 : 0) + (config.doctor ? 1 : 0) + 2;
+  const minPlayers = (config.mafiaCount || 1) + (config.detective ? 1 : 0) + (config.doctor ? 1 : 0) + (config.hunter ? 1 : 0) + (config.witch ? 1 : 0) + (config.jester ? 1 : 0) + 2;
   const canStart = players.length >= minPlayers;
 
   return (
@@ -67,9 +67,12 @@ export default function MafiaLobby({ code, roomState, playerName }) {
         </div>
 
         <div className="mlobby-roles">
-          <span className="mlobby-role-tag mafia">{config.mafiaCount || 1}× Mafia</span>
+          <span className="mlobby-role-tag mafia">{config.mafiaCount || 1}x Mafia</span>
           {config.detective && <span className="mlobby-role-tag detective">Detective</span>}
           {config.doctor && <span className="mlobby-role-tag doctor">Doctor</span>}
+          {config.hunter && <span className="mlobby-role-tag hunter">Hunter</span>}
+          {config.witch && <span className="mlobby-role-tag witch">Witch</span>}
+          {config.jester && <span className="mlobby-role-tag jester">Jester</span>}
           <span className="mlobby-role-tag civilian">Civilians</span>
         </div>
 

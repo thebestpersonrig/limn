@@ -90,6 +90,9 @@
 .mlobby-role-tag.mafia     { background: #450a0a; color: #fca5a5; }
 .mlobby-role-tag.detective { background: #172554; color: #93c5fd; }
 .mlobby-role-tag.doctor    { background: #052e16; color: #86efac; }
+.mlobby-role-tag.hunter    { background: #451a03; color: #fcd34d; }
+.mlobby-role-tag.witch     { background: #500724; color: #f9a8d4; }
+.mlobby-role-tag.jester    { background: #3b0764; color: #d8b4fe; }
 .mlobby-role-tag.civilian  { background: #1c1c2e; color: #888; }
 
 /* ── Player list ── */

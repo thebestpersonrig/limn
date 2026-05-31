@@ -283,6 +283,109 @@
   100% { opacity: 0; }
 }
 
+/* -- Jester win toast -- */
+.mgame-jester-toast {
+  margin-top: 12px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: #3b0764;
+  border: 1px solid #a855f7;
+  color: #d8b4fe;
+  font-size: 14px;
+  font-weight: 500;
+  animation: resultFadeIn 0.5s ease;
+}
+
+/* -- Hunter shot picker -- */
+.mgame-hunter-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.mgame-hunter-timer {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.mgame-hunter-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.mgame-hunter-target {
+  padding: 10px 16px;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  background: #1a1a24;
+  color: #ccc;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+.mgame-hunter-target:hover { border-color: #f59e0b80; transform: translateY(-1px); }
+.mgame-hunter-target.selected {
+  border-color: #f59e0b;
+  background: #f59e0b15;
+  color: #fff;
+}
+
+.mgame-hunter-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2a2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mgame-hunter-shoot {
+  padding: 10px 32px;
+  background: #f59e0b;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mgame-hunter-shoot:disabled { opacity: 0.35; cursor: not-allowed; }
+.mgame-hunter-shoot:hover:not(:disabled) { opacity: 0.88; }
+
+/* -- Witch kill in night result -- */
+.mgame-witch-kill-result {
+  margin-top: 12px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: #50072480;
+  border: 1px solid #ec489960;
+  color: #f9a8d4;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: resultFadeIn 0.5s ease 0.3s backwards;
+}
+.mgame-witch-kill-result p { margin: 0; }
+
+.phase-hunterShot {
+  background: #451a03;
+  color: #f59e0b;
+}
+
 /* -- Mobile -- */
 @media (max-width: 700px) {
   .mgame-body {

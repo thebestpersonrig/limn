@@ -14,6 +14,9 @@ export default function MafiaHome({ playerName }) {
   const [mafiaCount, setMafiaCount] = useState(1);
   const [detective,  setDetective]  = useState(true);
   const [doctor,     setDoctor]     = useState(true);
+  const [hunter,     setHunter]     = useState(false);
+  const [jester,     setJester]     = useState(false);
+  const [witch,      setWitch]      = useState(false);
 
   function connect(cb) {
     const socket = getSocket();
@@ -43,7 +46,7 @@ export default function MafiaHome({ playerName }) {
       const socket = getSocket();
       socket.emit("mafia-create-room", {
         name: playerName,
-        roleConfig: { mafiaCount, detective, doctor },
+        roleConfig: { mafiaCount, detective, doctor, hunter, jester, witch },
       });
       socket.once("mafia-joined-room", (data) => { setPending(false); handleJoined(data); });
       socket.once("mafia-error", ({ message }) => { setPending(false); setError(message); });
@@ -108,8 +111,29 @@ export default function MafiaHome({ playerName }) {
                 </button>
               </div>
 
+              <div className="config-row">
+                <span className="config-label">Hunter</span>
+                <button className={`config-toggle ${hunter ? "on" : ""}`} onClick={() => setHunter(!hunter)}>
+                  {hunter ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              <div className="config-row">
+                <span className="config-label">Witch</span>
+                <button className={`config-toggle ${witch ? "on" : ""}`} onClick={() => setWitch(!witch)}>
+                  {witch ? "ON" : "OFF"}
+                </button>
+              </div>
+
+              <div className="config-row">
+                <span className="config-label">Jester</span>
+                <button className={`config-toggle ${jester ? "on" : ""}`} onClick={() => setJester(!jester)}>
+                  {jester ? "ON" : "OFF"}
+                </button>
+              </div>
+
               <div className="config-min">
-                Min players: {mafiaCount + (detective ? 1 : 0) + (doctor ? 1 : 0) + 2}
+                Min players: {mafiaCount + (detective ? 1 : 0) + (doctor ? 1 : 0) + (hunter ? 1 : 0) + (witch ? 1 : 0) + (jester ? 1 : 0) + 2}
               </div>
             </div>
 

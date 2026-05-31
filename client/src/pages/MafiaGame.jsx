@@ -12,6 +12,7 @@ const TRANSITION_TEXT = {
   vote:        { icon: "🗳️", title: "Time to vote", sub: "Choose who to eliminate." },
   elimResult:  { icon: "⚰️", title: "The verdict...", sub: "" },
   nightResult: { icon: "🌅", title: "The sun rises...", sub: "What happened last night?" },
+  hunterShot:  { icon: "🏹", title: "The Hunter strikes!", sub: "A final shot from beyond..." },
 };
 
 export default function MafiaGame({ initialRole }) {
@@ -37,10 +38,21 @@ export default function MafiaGame({ initialRole }) {
   // Night
   const [nightActionDone,  setNightActionDone]  = useState(false);
   const [detectiveResult,  setDetectiveResult]  = useState(null);
+  const [witchReveal,      setWitchReveal]      = useState(null);
+  const [witchHealUsed,    setWitchHealUsed]    = useState(false);
+  const [witchKillUsed,    setWitchKillUsed]    = useState(false);
 
   // Results
   const [elimResult,  setElimResult]  = useState(null);
   const [nightResult, setNightResult] = useState(null);
+
+  // Hunter shot
+  const [hunterShotActive, setHunterShotActive] = useState(false);
+  const [hunterTargets,    setHunterTargets]    = useState([]);
+  const [hunterResult,     setHunterResult]     = useState(null);
+
+  // Jester
+  const [jesterWin, setJesterWin] = useState(null);
 
   // Transitions
   const [transition, setTransition] = useState(null);
@@ -71,8 +83,7 @@ export default function MafiaGame({ initialRole }) {
     }
 
     function onPhase({ phase: p, day: d, timeLeft: tl, players: pl }) {
-      // Show transition for dramatic phases
-      if (["night", "day", "vote"].includes(p)) {
+      if (["night", "day", "vote", "hunterShot"].includes(p)) {
         showTransition(p);
       }
 
@@ -86,7 +97,9 @@ export default function MafiaGame({ initialRole }) {
         setLastVote(null);
         setElimResult(null);
         setNightResult(null);
-        setMafiaMessages([]); // Clear mafia chat each night cycle
+        setHunterResult(null);
+        setJesterWin(null);
+        setMafiaMessages([]);
       }
       if (p === "vote") {
         setVotes([]);
@@ -95,10 +108,14 @@ export default function MafiaGame({ initialRole }) {
       if (p === "night") {
         setNightActionDone(false);
         setDetectiveResult(null);
+        setWitchReveal(null);
       }
       if (p === "roleReveal") {
         setShowRole(true);
         setTimeout(() => setShowRole(false), 4500);
+      }
+      if (p === "hunterShot") {
+        setHunterResult(null);
       }
     }
 
@@ -117,18 +134,36 @@ export default function MafiaGame({ initialRole }) {
       if (pl) setPlayers(pl);
     }
 
-    function onNightResult({ killed, saved, players: pl }) {
-      setNightResult({ killed, saved });
+    function onNightResult({ killed, witchKilled, saved, witchSaved, players: pl }) {
+      setNightResult({ killed, witchKilled, saved, witchSaved });
       if (pl) setPlayers(pl);
     }
 
     function onActionConfirmed() { setNightActionDone(true); }
     function onDetectiveResult(result) { setDetectiveResult(result); }
 
+    function onWitchReveal(data) { setWitchReveal(data); }
+
+    function onHunterShot({ targets }) {
+      setHunterShotActive(true);
+      setHunterTargets(targets || []);
+    }
+
+    function onHunterResultEvent({ target, hunterName }) {
+      setHunterShotActive(false);
+      setHunterResult({ target, hunterName });
+    }
+
+    function onJesterWin({ jesterName }) {
+      setJesterWin(jesterName);
+    }
+
     function onRoomState(state) {
       setPlayers(state.players);
       setPhase(state.phase);
       setDay(state.day);
+      if (state.witchHealUsed !== undefined) setWitchHealUsed(state.witchHealUsed);
+      if (state.witchKillUsed !== undefined) setWitchKillUsed(state.witchKillUsed);
     }
 
     function onPlayerJoined({ player }) {
@@ -149,6 +184,10 @@ export default function MafiaGame({ initialRole }) {
     socket.on("mafia-night-result",      onNightResult);
     socket.on("mafia-action-confirmed",  onActionConfirmed);
     socket.on("mafia-detective-result",  onDetectiveResult);
+    socket.on("mafia-witch-reveal",      onWitchReveal);
+    socket.on("mafia-hunter-shot",       onHunterShot);
+    socket.on("mafia-hunter-result",     onHunterResultEvent);
+    socket.on("mafia-jester-win",        onJesterWin);
     socket.on("mafia-room-state",        onRoomState);
     socket.on("mafia-player-joined",     onPlayerJoined);
     socket.on("mafia-player-left",       onPlayerLeft);
@@ -164,6 +203,10 @@ export default function MafiaGame({ initialRole }) {
       socket.off("mafia-night-result",      onNightResult);
       socket.off("mafia-action-confirmed",  onActionConfirmed);
       socket.off("mafia-detective-result",  onDetectiveResult);
+      socket.off("mafia-witch-reveal",      onWitchReveal);
+      socket.off("mafia-hunter-shot",       onHunterShot);
+      socket.off("mafia-hunter-result",     onHunterResultEvent);
+      socket.off("mafia-jester-win",        onJesterWin);
       socket.off("mafia-room-state",        onRoomState);
       socket.off("mafia-player-joined",     onPlayerJoined);
       socket.off("mafia-player-left",       onPlayerLeft);
@@ -175,6 +218,8 @@ export default function MafiaGame({ initialRole }) {
   function sendNightChat(text) { socket.emit("mafia-night-chat", { text }); }
   function sendVote(targetId)  { socket.emit("mafia-vote",       { targetId }); }
   function sendNightAction(targetId) { socket.emit("mafia-night-action", { targetId }); }
+  function sendWitchAction(data) { socket.emit("mafia-witch-action", data); }
+  function sendHunterAction(targetId) { socket.emit("mafia-hunter-action", { targetId }); }
 
   const me = players.find(p => p.id === myId);
   const amAlive = me?.isAlive ?? true;
@@ -188,6 +233,7 @@ export default function MafiaGame({ initialRole }) {
     day: "Discussion",
     vote: "Voting",
     elimResult: "Elimination",
+    hunterShot: "Hunter's Shot",
     night: "Night",
     nightResult: "Dawn",
   };
@@ -205,7 +251,7 @@ export default function MafiaGame({ initialRole }) {
           <span className={`mgame-phase-badge phase-${phase}`}>
             {phaseLabels[phase] || phase}
           </span>
-          {(phase === "day" || phase === "vote" || phase === "night") && timeLeft > 0 && (
+          {(phase === "day" || phase === "vote" || phase === "night" || phase === "hunterShot") && timeLeft > 0 && (
             <span className={`mgame-timer ${timerWarning ? "mgame-timer--warn" : ""}`}>
               {timeLeft}s
             </span>
@@ -218,7 +264,7 @@ export default function MafiaGame({ initialRole }) {
       </div>
 
       {/* Dead spectator banner */}
-      {!amAlive && phase !== "roleReveal" && (
+      {!amAlive && phase !== "roleReveal" && phase !== "hunterShot" && (
         <div className="mgame-dead-banner">
           <span>💀</span> You were eliminated. Watching as a ghost...
         </div>
@@ -245,7 +291,7 @@ export default function MafiaGame({ initialRole }) {
               messages={dayMessages}
               onSend={sendDayChat}
               disabled={!amAlive}
-              label={phase === "vote" ? "Chat (voting open)" : `Town Discussion — Day ${day}`}
+              label={phase === "vote" ? "Chat (voting open)" : `Town Discussion -- Day ${day}`}
               variant="day"
             />
           )}
@@ -276,8 +322,12 @@ export default function MafiaGame({ initialRole }) {
               players={players}
               myId={myId}
               onAction={sendNightAction}
+              onWitchAction={sendWitchAction}
               actionDone={nightActionDone}
               detectiveResult={detectiveResult}
+              witchReveal={witchReveal}
+              witchHealUsed={witchHealUsed}
+              witchKillUsed={witchKillUsed}
             />
           )}
 
@@ -302,6 +352,43 @@ export default function MafiaGame({ initialRole }) {
                   <p className="mgame-result-sub">No one was eliminated.</p>
                 </>
               )}
+              {jesterWin && (
+                <div className="mgame-jester-toast">
+                  🃏 <strong>{jesterWin}</strong> was the Jester and wins!
+                </div>
+              )}
+            </div>
+          )}
+
+          {phase === "hunterShot" && (
+            <div className="mgame-result-overlay mgame-result--hunter">
+              {hunterShotActive && myRole === "hunter" && !amAlive ? (
+                <HunterShotPicker
+                  targets={hunterTargets}
+                  timeLeft={timeLeft}
+                  onShoot={sendHunterAction}
+                />
+              ) : hunterResult ? (
+                <>
+                  <span className="mgame-result-icon">🏹</span>
+                  <p className="mgame-result-text">
+                    <strong>{hunterResult.hunterName}</strong> fires a final shot!
+                  </p>
+                  {hunterResult.target ? (
+                    <p className="mgame-result-role">
+                      <strong>{hunterResult.target.name}</strong> ({hunterResult.target.role}) was killed.
+                    </p>
+                  ) : (
+                    <p className="mgame-result-sub">The shot missed.</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="mgame-result-icon">🏹</span>
+                  <p className="mgame-result-text">The Hunter is taking aim...</p>
+                  <div className="mgame-loading-dots"><span /><span /><span /></div>
+                </>
+              )}
             </div>
           )}
 
@@ -322,11 +409,20 @@ export default function MafiaGame({ initialRole }) {
                   <span className="mgame-result-icon">{nightResult?.saved ? "💊" : "☀️"}</span>
                   <p className="mgame-result-text">
                     {nightResult?.saved
-                      ? "The Doctor saved a life!"
+                      ? (nightResult?.witchSaved ? "The Witch saved a life!" : "The Doctor saved a life!")
                       : "A peaceful night. No one was killed."
                     }
                   </p>
                 </>
+              )}
+              {nightResult?.witchKilled && (
+                <div className="mgame-witch-kill-result">
+                  <span>🧪</span>
+                  <p>
+                    <strong>{nightResult.witchKilled.name}</strong> was poisoned by the Witch.
+                    They were <strong>{nightResult.witchKilled.role}</strong>.
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -354,6 +450,37 @@ export default function MafiaGame({ initialRole }) {
       {showRole && myRole && phase === "roleReveal" && (
         <RoleCardFull role={myRole} mafiaTeam={mafiaTeam} />
       )}
+    </div>
+  );
+}
+
+function HunterShotPicker({ targets, timeLeft, onShoot }) {
+  const [selected, setSelected] = useState(null);
+
+  return (
+    <div className="mgame-hunter-picker">
+      <span className="mgame-result-icon">🏹</span>
+      <p className="mgame-result-text">You died! Choose someone to take with you.</p>
+      {timeLeft > 0 && <span className="mgame-hunter-timer">{timeLeft}s</span>}
+      <div className="mgame-hunter-targets">
+        {targets.map(p => (
+          <button
+            key={p.id}
+            className={`mgame-hunter-target ${selected === p.id ? "selected" : ""}`}
+            onClick={() => setSelected(p.id)}
+          >
+            <span className="mgame-hunter-avatar">{p.name[0].toUpperCase()}</span>
+            {p.name}
+          </button>
+        ))}
+      </div>
+      <button
+        className="mgame-hunter-shoot"
+        disabled={!selected}
+        onClick={() => { if (selected) onShoot(selected); }}
+      >
+        Shoot
+      </button>
     </div>
   );
 }

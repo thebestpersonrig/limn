@@ -7,6 +7,8 @@ import { MonopolyPlayer } from "../game/MonopolyPlayer.js";
 import { KartArena } from "../game/KartArena.js";
 import { BattleshipRoom } from "../game/BattleshipRoom.js";
 import { UnoRoom } from "../game/UnoRoom.js";
+import { TicTacToeRoom } from "../game/TicTacToeRoom.js";
+import { HangmanRoom } from "../game/HangmanRoom.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
@@ -14,6 +16,8 @@ const monopolyRooms = new Map();
 const kartRooms = new Map();
 const battleshipRooms = new Map();
 const unoRooms = new Map();
+const tttRooms = new Map();
+const hangmanRooms = new Map();
 
 function generateCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -52,6 +56,8 @@ export function registerHandlers(io) {
     let currentKartCode = null;
     let currentBattleshipCode = null;
     let currentUnoCode = null;
+    let currentTttCode = null;
+    let currentHangmanCode = null;
 
     /* ─────────────────────────────
        LIMN GAME
@@ -59,7 +65,7 @@ export function registerHandlers(io) {
 
     socket.on("create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
       const room = new GameRoom(code, io);
@@ -171,7 +177,7 @@ export function registerHandlers(io) {
 
     socket.on("mafia-create-room", safe(({ name, roleConfig }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
 
@@ -180,6 +186,9 @@ export function registerHandlers(io) {
         if (roleConfig.mafiaCount !== undefined) room.roleConfig.mafiaCount = roleConfig.mafiaCount;
         if (roleConfig.detective !== undefined) room.roleConfig.detective = roleConfig.detective;
         if (roleConfig.doctor !== undefined) room.roleConfig.doctor = roleConfig.doctor;
+        if (roleConfig.hunter !== undefined) room.roleConfig.hunter = roleConfig.hunter;
+        if (roleConfig.jester !== undefined) room.roleConfig.jester = roleConfig.jester;
+        if (roleConfig.witch !== undefined) room.roleConfig.witch = roleConfig.witch;
       }
       mafiaRooms.set(code, room);
 
@@ -254,13 +263,25 @@ export function registerHandlers(io) {
       room.submitNightAction(socket.id, targetId);
     }));
 
+    socket.on("mafia-witch-action", safe((data) => {
+      const room = mafiaRooms.get(currentMafiaCode);
+      if (!room) return;
+      room.submitNightAction(socket.id, null, data);
+    }));
+
+    socket.on("mafia-hunter-action", safe(({ targetId }) => {
+      const room = mafiaRooms.get(currentMafiaCode);
+      if (!room) return;
+      room.handleHunterAction(socket.id, targetId);
+    }));
+
     /* ─────────────────────────────
        MONOPOLY GAME
     ───────────────────────────── */
 
     socket.on("monopoly-create-room", safe(({ name, settings }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
 
@@ -428,7 +449,7 @@ export function registerHandlers(io) {
 
     socket.on("kart-create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
 
@@ -473,7 +494,7 @@ export function registerHandlers(io) {
 
     socket.on("battleship-create-room", safe(({ name, mode }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
 
@@ -595,7 +616,7 @@ export function registerHandlers(io) {
 
     socket.on("uno-create-room", safe(({ name }) => {
       let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code)) {
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
         code = generateCode();
       }
 
@@ -746,6 +767,182 @@ export function registerHandlers(io) {
     }
 
     /* ─────────────────────────────
+       TIC-TAC-TOE GAME
+    ───────────────────────────── */
+
+    socket.on("ttt-create-room", safe(({ name }) => {
+      let code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
+        code = generateCode();
+      }
+
+      const room = new TicTacToeRoom(code, io);
+      tttRooms.set(code, room);
+      joinTttRoom(socket, room, name || "Player");
+    }));
+
+    socket.on("ttt-join-room", safe(({ code, name }) => {
+      const room = tttRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("ttt-error", { message: "Room not found." });
+      const result = room.addPlayer(socket.id, name || "Player");
+      if (result.error) return socket.emit("ttt-error", { message: result.error });
+
+      currentTttCode = room.code;
+      socket.join(room.code);
+      socket.emit("ttt-joined-room", { code: room.code, roomState: room.getRoomState() });
+
+      // Auto-start when 2 players
+      if (room.players.size === 2 && room.phase === "lobby") {
+        room.startGame();
+      }
+    }));
+
+    socket.on("ttt-rejoin", safe(({ roomCode, name }) => {
+      const room = tttRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("ttt-rejoin-failed");
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("ttt-rejoin-failed");
+
+      // Re-add player if they were removed
+      if (!room.players.has(socket.id)) {
+        const result = room.addPlayer(socket.id, name || "Player");
+        if (result.error) return socket.emit("ttt-rejoin-failed");
+      }
+
+      currentTttCode = room.code;
+      socket.join(room.code);
+      socket.emit("ttt-rejoined", { code: room.code, roomState: state });
+    }));
+
+    socket.on("ttt-make-move", safe(({ cellIndex }) => {
+      const room = tttRooms.get(currentTttCode);
+      if (!room) return;
+      room.makeMove(socket.id, cellIndex);
+    }));
+
+    socket.on("ttt-rematch", safe(() => {
+      const room = tttRooms.get(currentTttCode);
+      if (!room) return;
+      room.requestRematch(socket.id);
+    }));
+
+    socket.on("ttt-get-state", safe(() => {
+      const room = tttRooms.get(currentTttCode);
+      if (!room) return;
+      socket.emit("ttt-room-state", room.getRoomState());
+      if (room.phase === "playing") {
+        socket.emit("ttt-game-state", room.getPlayerState(socket.id));
+      }
+    }));
+
+    socket.on("ttt-leave", safe(() => {
+      const room = tttRooms.get(currentTttCode);
+      if (room) {
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) tttRooms.delete(currentTttCode);
+      }
+      currentTttCode = null;
+    }));
+
+    function joinTttRoom(sock, room, name) {
+      const result = room.addPlayer(sock.id, name);
+      if (result.error) {
+        sock.emit("ttt-error", { message: result.error });
+        return;
+      }
+      currentTttCode = room.code;
+      sock.join(room.code);
+      sock.emit("ttt-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    /* ─────────────────────────────
+       HANGMAN GAME
+    ───────────────────────────── */
+
+    socket.on("hang-create-room", safe(({ name }) => {
+      let code = generateCode();
+      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code)) {
+        code = generateCode();
+      }
+
+      const room = new HangmanRoom(code, io);
+      hangmanRooms.set(code, room);
+      joinHangmanRoom(socket, room, name || "Player");
+    }));
+
+    socket.on("hang-join-room", safe(({ code, name }) => {
+      const room = hangmanRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("hang-error", { message: "Room not found." });
+      const result = room.addPlayer(socket.id, name || "Player");
+      if (result.error) return socket.emit("hang-error", { message: result.error });
+
+      currentHangmanCode = room.code;
+      socket.join(room.code);
+      socket.emit("hang-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("hang-rejoin", safe(({ roomCode, name }) => {
+      const room = hangmanRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("hang-rejoin-failed");
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("hang-rejoin-failed");
+
+      if (!room.players.has(socket.id)) {
+        const result = room.addPlayer(socket.id, name || "Player");
+        if (result.error) return socket.emit("hang-rejoin-failed");
+      }
+
+      currentHangmanCode = room.code;
+      socket.join(room.code);
+      socket.emit("hang-rejoined", { code: room.code, roomState: state });
+    }));
+
+    socket.on("hang-start-game", safe(() => {
+      const room = hangmanRooms.get(currentHangmanCode);
+      if (!room) return;
+      const result = room.startGame();
+      if (result?.error) socket.emit("hang-error", { message: result.error });
+    }));
+
+    socket.on("hang-submit-word", safe(({ word, hint }) => {
+      const room = hangmanRooms.get(currentHangmanCode);
+      if (!room) return;
+      room.submitWord(socket.id, word, hint);
+    }));
+
+    socket.on("hang-guess-letter", safe(({ letter }) => {
+      const room = hangmanRooms.get(currentHangmanCode);
+      if (!room) return;
+      room.guessLetter(socket.id, letter);
+    }));
+
+    socket.on("hang-get-state", safe(() => {
+      const room = hangmanRooms.get(currentHangmanCode);
+      if (!room) return;
+      socket.emit("hang-room-state", room.getRoomState());
+    }));
+
+    socket.on("hang-leave", safe(() => {
+      const room = hangmanRooms.get(currentHangmanCode);
+      if (room) {
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) hangmanRooms.delete(currentHangmanCode);
+      }
+      currentHangmanCode = null;
+    }));
+
+    function joinHangmanRoom(sock, room, name) {
+      const result = room.addPlayer(sock.id, name);
+      if (result.error) {
+        sock.emit("hang-error", { message: result.error });
+        return;
+      }
+      currentHangmanCode = room.code;
+      sock.join(room.code);
+      sock.emit("hang-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    /* ─────────────────────────────
        DISCONNECT
     ───────────────────────────── */
 
@@ -801,6 +998,24 @@ export function registerHandlers(io) {
         if (uRoom) {
           uRoom.removePlayer(socket.id);
           if (uRoom.isEmpty()) unoRooms.delete(currentUnoCode);
+        }
+      }
+
+      // TicTacToe cleanup
+      if (currentTttCode) {
+        const tRoom = tttRooms.get(currentTttCode);
+        if (tRoom) {
+          tRoom.removePlayer(socket.id);
+          if (tRoom.isEmpty()) tttRooms.delete(currentTttCode);
+        }
+      }
+
+      // Hangman cleanup
+      if (currentHangmanCode) {
+        const hRoom = hangmanRooms.get(currentHangmanCode);
+        if (hRoom) {
+          hRoom.removePlayer(socket.id);
+          if (hRoom.isEmpty()) hangmanRooms.delete(currentHangmanCode);
         }
       }
     });

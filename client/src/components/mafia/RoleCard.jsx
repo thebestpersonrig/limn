@@ -33,6 +33,30 @@ const ROLE_DATA = {
     desc: "Find and vote out the Mafia during the day. Your voice matters.",
     tip: "Pay attention to who's acting suspicious.",
   },
+  hunter: {
+    emoji: "🏹",
+    label: "Hunter",
+    color: "#f59e0b",
+    bg: "#451a03",
+    desc: "If you die, you get to take someone with you.",
+    tip: "Stay alive, but if you can't -- make it count.",
+  },
+  jester: {
+    emoji: "🃏",
+    label: "Jester",
+    color: "#a855f7",
+    bg: "#3b0764",
+    desc: "Your goal is to get voted out. Act suspicious!",
+    tip: "Convince the town you're Mafia -- but not too obvious.",
+  },
+  witch: {
+    emoji: "🧪",
+    label: "Witch",
+    color: "#ec4899",
+    bg: "#500724",
+    desc: "You have a heal potion and a kill potion. Each can be used once.",
+    tip: "At night, you'll see who the Mafia targets.",
+  },
 };
 
 export function RoleCardFull({ role, mafiaTeam }) {

@@ -1,0 +1,91 @@
+.hang-home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, #2a1020, #0a0a10 70%);
+  padding: 20px;
+}
+
+.hang-home-card {
+  background: #12121a;
+  border: 1px solid #1e2a3a;
+  border-radius: 20px;
+  padding: 40px;
+  width: 400px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.hang-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.hang-back:hover { color: #888; }
+
+.hang-title {
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.hang-subtitle {
+  color: #f43f5e;
+  font-size: 14px;
+  font-weight: 500;
+  margin: -12px 0 0;
+}
+
+.hang-playing-as { font-size: 13px; color: #666; }
+
+.hang-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.hang-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.hang-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.hang-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.hang-btn-primary { background: #f43f5e; color: #fff; }
+.hang-btn-secondary { background: #1e2a3a; color: #aaa; }
+.hang-btn-ghost { background: transparent; color: #555; font-size: 13px; border: none; }
+
+.hang-input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  background: #0a0a10;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 4px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.hang-input:focus { border-color: #f43f5e; }
+
+.hang-error { color: #ff6b6b; font-size: 13px; margin: 0; }
