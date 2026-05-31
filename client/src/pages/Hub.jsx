@@ -93,6 +93,17 @@ const GAMES = [
     available: true,
   },
   {
+    id: "carrom",
+    name: "Carrom",
+    tagline: "Disc Flicking",
+    description: "Flick the striker to pocket your pieces. A classic tabletop game, now online.",
+    players: "2 players",
+    emoji: "🎯",
+    color: "#d4a017",
+    mode: "multiplayer",
+    available: true,
+  },
+  {
     id: "snake",
     name: "Snake",
     tagline: "Arcade Classic",

@@ -24,6 +24,9 @@ import TicTacToeOnline from "./pages/TicTacToeOnline";
 import HangmanHome from "./pages/HangmanHome";
 import HangmanGame from "./pages/HangmanGame";
 
+import CarromHome from "./pages/CarromHome";
+import CarromGame from "./pages/CarromGame";
+
 import SnakeGame from "./pages/SnakeGame";
 
 import {
@@ -92,7 +95,8 @@ export default function App() {
         path === "/battleship" ||
         path === "/uno" ||
         path === "/tictactoe" ||
-        path === "/hangman"
+        path === "/hangman" ||
+        path === "/carrom"
       )
         return;
 
@@ -106,6 +110,8 @@ export default function App() {
         s.emit("ttt-rejoin", session);
       } else if (session.gameType === "hangman") {
         s.emit("hang-rejoin", session);
+      } else if (session.gameType === "carrom") {
+        s.emit("carr-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -130,6 +136,7 @@ export default function App() {
     s.on("uno-rejoin-failed", onRejoinFailed);
     s.on("ttt-rejoin-failed", onRejoinFailed);
     s.on("hang-rejoin-failed", onRejoinFailed);
+    s.on("carr-rejoin-failed", onRejoinFailed);
 
     return () => {
       s.off("connect", onConnect);
@@ -142,6 +149,7 @@ export default function App() {
       s.off("uno-rejoin-failed", onRejoinFailed);
       s.off("ttt-rejoin-failed", onRejoinFailed);
       s.off("hang-rejoin-failed", onRejoinFailed);
+      s.off("carr-rejoin-failed", onRejoinFailed);
     };
   }, [navigate]);
 
@@ -164,6 +172,7 @@ export default function App() {
       currentPath === "/tictactoe" ||
       currentPath === "/tictactoe/ai" ||
       currentPath === "/hangman" ||
+      currentPath === "/carrom" ||
       currentPath === "/snake"
     ) {
       clearSession();
@@ -187,6 +196,8 @@ export default function App() {
         s.emit("ttt-rejoin", session);
       } else if (session.gameType === "hangman") {
         s.emit("hang-rejoin", session);
+      } else if (session.gameType === "carrom") {
+        s.emit("carr-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -247,6 +258,10 @@ export default function App() {
       safeNavigate(roomState, `/hangman/${code}`, { code });
     }
 
+    function onCarrRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/carrom/${code}`, { code });
+    }
+
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
     s.once("monopoly-rejoined", onMonopolyRejoined);
@@ -254,6 +269,7 @@ export default function App() {
     s.once("uno-rejoined", onUnoRejoined);
     s.once("ttt-rejoined", onTttRejoined);
     s.once("hang-rejoined", onHangRejoined);
+    s.once("carr-rejoined", onCarrRejoined);
 
     if (s.connected) doRejoin();
     else {
@@ -269,6 +285,7 @@ export default function App() {
       s.off("uno-rejoined", onUnoRejoined);
       s.off("ttt-rejoined", onTttRejoined);
       s.off("hang-rejoined", onHangRejoined);
+      s.off("carr-rejoined", onCarrRejoined);
     };
   }, [navigate]);
 
@@ -288,6 +305,7 @@ export default function App() {
     if (id === "uno") navigate("/uno");
     if (id === "tictactoe") navigate("/tictactoe");
     if (id === "hangman") navigate("/hangman");
+    if (id === "carrom") navigate("/carrom");
     if (id === "snake") navigate("/snake");
   }
 
@@ -298,7 +316,7 @@ export default function App() {
   }
 
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman|carrom)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -336,6 +354,9 @@ export default function App() {
 
         <Route path="/hangman" element={<HangmanHome playerName={playerName} />} />
         <Route path="/hangman/:code" element={<HangmanGame />} />
+
+        <Route path="/carrom" element={<CarromHome playerName={playerName} />} />
+        <Route path="/carrom/:code" element={<CarromGame />} />
 
         <Route path="/snake" element={<SnakeGame />} />
 
