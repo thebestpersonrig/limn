@@ -27,6 +27,9 @@ import HangmanGame from "./pages/HangmanGame";
 import CarromHome from "./pages/CarromHome";
 import CarromGame from "./pages/CarromGame";
 
+import ChessHome from "./pages/ChessHome";
+import ChessGame from "./pages/ChessGame";
+
 import SnakeGame from "./pages/SnakeGame";
 
 import {
@@ -96,7 +99,8 @@ export default function App() {
         path === "/uno" ||
         path === "/tictactoe" ||
         path === "/hangman" ||
-        path === "/carrom"
+        path === "/carrom" ||
+        path === "/chess"
       )
         return;
 
@@ -114,6 +118,8 @@ export default function App() {
         s.emit("hang-rejoin", session);
       } else if (session.gameType === "carrom") {
         s.emit("carr-rejoin", session);
+      } else if (session.gameType === "chess") {
+        s.emit("chess-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -141,6 +147,7 @@ export default function App() {
       "ttt-game-over",
       "hang-game-end",
       "carr-match-over",
+      "chess-game-over",
     ];
 
     s.on("connect", onConnect);
@@ -154,6 +161,7 @@ export default function App() {
     s.on("ttt-rejoin-failed", onRejoinFailed);
     s.on("hang-rejoin-failed", onRejoinFailed);
     s.on("carr-rejoin-failed", onRejoinFailed);
+    s.on("chess-rejoin-failed", onRejoinFailed);
 
     for (const ev of GAME_END_EVENTS) s.on(ev, onGameEnd);
 
@@ -169,6 +177,7 @@ export default function App() {
       s.off("ttt-rejoin-failed", onRejoinFailed);
       s.off("hang-rejoin-failed", onRejoinFailed);
       s.off("carr-rejoin-failed", onRejoinFailed);
+      s.off("chess-rejoin-failed", onRejoinFailed);
 
       for (const ev of GAME_END_EVENTS) s.off(ev, onGameEnd);
     };
@@ -194,6 +203,7 @@ export default function App() {
       currentPath === "/tictactoe/ai" ||
       currentPath === "/hangman" ||
       currentPath === "/carrom" ||
+      currentPath === "/chess" ||
       currentPath === "/snake"
     ) {
       clearSession();
@@ -219,6 +229,8 @@ export default function App() {
         s.emit("hang-rejoin", session);
       } else if (session.gameType === "carrom") {
         s.emit("carr-rejoin", session);
+      } else if (session.gameType === "chess") {
+        s.emit("chess-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -283,6 +295,10 @@ export default function App() {
       safeNavigate(roomState, `/carrom/${code}`, { code });
     }
 
+    function onChessRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/chess/${code}`, { code });
+    }
+
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
     s.once("monopoly-rejoined", onMonopolyRejoined);
@@ -291,6 +307,7 @@ export default function App() {
     s.once("ttt-rejoined", onTttRejoined);
     s.once("hang-rejoined", onHangRejoined);
     s.once("carr-rejoined", onCarrRejoined);
+    s.once("chess-rejoined", onChessRejoined);
 
     if (s.connected) doRejoin();
     else {
@@ -307,6 +324,7 @@ export default function App() {
       s.off("ttt-rejoined", onTttRejoined);
       s.off("hang-rejoined", onHangRejoined);
       s.off("carr-rejoined", onCarrRejoined);
+      s.off("chess-rejoined", onChessRejoined);
     };
   }, [navigate]);
 
@@ -327,6 +345,7 @@ export default function App() {
     if (id === "tictactoe") navigate("/tictactoe");
     if (id === "hangman") navigate("/hangman");
     if (id === "carrom") navigate("/carrom");
+    if (id === "chess") navigate("/chess");
     if (id === "snake") navigate("/snake");
   }
 
@@ -337,7 +356,7 @@ export default function App() {
   }
 
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman|carrom)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman|carrom|chess)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -378,6 +397,9 @@ export default function App() {
 
         <Route path="/carrom" element={<CarromHome playerName={playerName} />} />
         <Route path="/carrom/:code" element={<CarromGame />} />
+
+        <Route path="/chess" element={<ChessHome playerName={playerName} />} />
+        <Route path="/chess/:code" element={<ChessGame />} />
 
         <Route path="/snake" element={<SnakeGame />} />
 

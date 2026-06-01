@@ -93,6 +93,17 @@ const GAMES = [
     available: true,
   },
   {
+    id: "chess",
+    name: "Chess",
+    tagline: "Classic Strategy",
+    description: "The ultimate strategy game. Full rules with castling, en passant, and promotion.",
+    players: "2 players",
+    emoji: "♟",
+    color: "#7cb342",
+    mode: "multiplayer",
+    available: true,
+  },
+  {
     id: "carrom",
     name: "Carrom",
     tagline: "Disc Flicking",

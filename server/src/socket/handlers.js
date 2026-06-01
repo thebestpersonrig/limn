@@ -10,6 +10,7 @@ import { UnoRoom } from "../game/UnoRoom.js";
 import { TicTacToeRoom } from "../game/TicTacToeRoom.js";
 import { HangmanRoom } from "../game/HangmanRoom.js";
 import { CarromRoom } from "../game/CarromRoom.js";
+import { ChessRoom } from "../game/ChessRoom.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
@@ -20,6 +21,7 @@ const unoRooms = new Map();
 const tttRooms = new Map();
 const hangmanRooms = new Map();
 const carromRooms = new Map();
+const chessRooms = new Map();
 
 function generateCode() {
   // pad to ensure we always get 6 chars even for very small Math.random() values
@@ -32,7 +34,7 @@ function generateCode() {
 function generateUniqueCode() {
   const allMaps = [
     rooms, mafiaRooms, monopolyRooms, kartRooms,
-    battleshipRooms, unoRooms, tttRooms, hangmanRooms, carromRooms,
+    battleshipRooms, unoRooms, tttRooms, hangmanRooms, carromRooms, chessRooms,
   ];
   let code;
   do { code = generateCode(); } while (allMaps.some(m => m.has(code)));
@@ -80,6 +82,7 @@ export function registerHandlers(io) {
     let currentTttCode = null;
     let currentHangmanCode = null;
     let currentCarromCode = null;
+    let currentChessCode = null;
 
     /* ─────────────────────────────
        LIMN GAME
@@ -1010,6 +1013,101 @@ export function registerHandlers(io) {
     }
 
     /* ─────────────────────────────
+       CHESS
+    ───────────────────────────── */
+
+    socket.on("chess-create-room", safe(({ name }) => {
+      const code = generateUniqueCode();
+      const room = new ChessRoom(code, io);
+      chessRooms.set(code, room);
+      joinChessRoom(socket, room, sanitizeName(name));
+    }));
+
+    socket.on("chess-join-room", safe(({ code, name }) => {
+      const room = chessRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("chess-error", { message: "Room not found." });
+      const result = room.addPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("chess-error", { message: result.error });
+
+      currentChessCode = room.code;
+      socket.join(room.code);
+      socket.emit("chess-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("chess-rejoin", safe(({ roomCode, name }) => {
+      const room = chessRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("chess-rejoin-failed");
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("chess-rejoin-failed");
+
+      if (!room.players.has(socket.id)) {
+        const result = room.addPlayer(socket.id, sanitizeName(name));
+        if (result.error) return socket.emit("chess-rejoin-failed");
+      }
+
+      currentChessCode = room.code;
+      socket.join(room.code);
+      socket.emit("chess-rejoined", { code: room.code, roomState: state });
+    }));
+
+    socket.on("chess-start-game", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      const result = room.startGame();
+      if (result?.error) socket.emit("chess-error", { message: result.error });
+    }));
+
+    socket.on("chess-move", safe(({ from, to, promoteTo, resultState }) => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      room.handleMove(socket.id, { from, to, promoteTo, resultState });
+    }));
+
+    socket.on("chess-resign", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      room.handleResign(socket.id);
+    }));
+
+    socket.on("chess-draw-offer", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      room.handleDrawOffer(socket.id);
+    }));
+
+    socket.on("chess-rematch", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      room.handleRematch(socket.id);
+    }));
+
+    socket.on("chess-get-state", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (!room) return;
+      socket.emit("chess-room-state", room.getRoomState());
+    }));
+
+    socket.on("chess-leave", safe(() => {
+      const room = chessRooms.get(currentChessCode);
+      if (room) {
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) chessRooms.delete(currentChessCode);
+      }
+      currentChessCode = null;
+    }));
+
+    function joinChessRoom(sock, room, name) {
+      const result = room.addPlayer(sock.id, name);
+      if (result.error) {
+        sock.emit("chess-error", { message: result.error });
+        return;
+      }
+      currentChessCode = room.code;
+      sock.join(room.code);
+      sock.emit("chess-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    /* ─────────────────────────────
        DISCONNECT
     ───────────────────────────── */
 
@@ -1083,6 +1181,15 @@ export function registerHandlers(io) {
         if (hRoom) {
           hRoom.markDisconnected(socket.id);
           if (hRoom.isEmpty()) hangmanRooms.delete(currentHangmanCode);
+        }
+      }
+
+      // Chess cleanup
+      if (currentChessCode) {
+        const chRoom = chessRooms.get(currentChessCode);
+        if (chRoom) {
+          chRoom.removePlayer(socket.id);
+          if (chRoom.isEmpty()) chessRooms.delete(currentChessCode);
         }
       }
 
