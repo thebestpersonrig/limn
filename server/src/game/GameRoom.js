@@ -36,7 +36,7 @@ export class GameRoom {
     this.broadcast("player-left", { playerId: socketId, name: player.name });
 
     if (this.state !== "lobby" && socketId === this.currentDrawerId) {
-      this.endRound(true);
+      this.endRound();
     }
 
     this.broadcast("room-state", this.getRoomState());
@@ -143,7 +143,8 @@ export class GameRoom {
     if (socketId === this.currentDrawerId) return;
     const player = this.players.get(socketId);
     if (!player || !text.trim()) return;
-    this.broadcast("chat-message", { name: player.name, text: text.trim(), playerId: socketId });
+    const safe = text.trim().slice(0, 200);
+    this.broadcast("chat-message", { name: player.name, text: safe, playerId: socketId });
   }
 
   endRound() {

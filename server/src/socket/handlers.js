@@ -22,7 +22,26 @@ const hangmanRooms = new Map();
 const carromRooms = new Map();
 
 function generateCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  // pad to ensure we always get 6 chars even for very small Math.random() values
+  const n = Math.random();
+  const s = n.toString(36).slice(2);
+  return s.padEnd(6, "0").slice(0, 6).toUpperCase();
+}
+
+// Returns a code that is not already in use across any game's room map
+function generateUniqueCode() {
+  const allMaps = [
+    rooms, mafiaRooms, monopolyRooms, kartRooms,
+    battleshipRooms, unoRooms, tttRooms, hangmanRooms, carromRooms,
+  ];
+  let code;
+  do { code = generateCode(); } while (allMaps.some(m => m.has(code)));
+  return code;
+}
+
+// Trim and cap player names at 30 chars
+function sanitizeName(name) {
+  return (typeof name === "string" ? name.trim() : "").slice(0, 30) || "Player";
 }
 
 function safe(fn) {
@@ -67,13 +86,10 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
+      const code = generateUniqueCode();
       const room = new GameRoom(code, io);
       rooms.set(code, room);
-      joinRoom(socket, room, name || "Player");
+      joinRoom(socket, room, sanitizeName(name));
       socket.emit("room-created", { code });
     }));
 
@@ -81,7 +97,7 @@ export function registerHandlers(io) {
       const room = rooms.get(code?.toUpperCase());
       if (!room) return socket.emit("error", { message: "Room not found." });
 
-      joinRoom(socket, room, name || "Player");
+      joinRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("rejoin", safe(({ name, roomCode }) => {
@@ -179,10 +195,7 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("mafia-create-room", safe(({ name, roleConfig }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
+      const code = generateUniqueCode();
 
       const room = new MafiaRoom(code, io);
       if (roleConfig) {
@@ -195,7 +208,7 @@ export function registerHandlers(io) {
       }
       mafiaRooms.set(code, room);
 
-      joinMafiaRoom(socket, room, name || "Player");
+      joinMafiaRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("mafia-rejoin", safe(({ roomCode, name }) => {
@@ -232,7 +245,7 @@ export function registerHandlers(io) {
     socket.on("mafia-join-room", safe(({ code, name }) => {
       const room = mafiaRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("mafia-error", { message: "Room not found." });
-      joinMafiaRoom(socket, room, name || "Player");
+      joinMafiaRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("mafia-start-game", safe(() => {
@@ -283,21 +296,18 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("monopoly-create-room", safe(({ name, settings }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
+      const code = generateUniqueCode();
 
       const room = new MonopolyRoom(code, io);
       if (settings) {
-        if (settings.startingMoney) room.settings.startingMoney = settings.startingMoney;
+        if (settings.startingMoney !== undefined) room.settings.startingMoney = settings.startingMoney;
         if (settings.mode) room.settings.mode = settings.mode;
         if (settings.turnTimer !== undefined) room.settings.turnTimer = settings.turnTimer;
         if (settings.freeParking !== undefined) room.settings.freeParking = settings.freeParking;
       }
       monopolyRooms.set(code, room);
 
-      joinMonopolyRoom(socket, room, name || "Player");
+      joinMonopolyRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("monopoly-rejoin", safe(({ roomCode, name }) => {
@@ -334,7 +344,7 @@ export function registerHandlers(io) {
     socket.on("monopoly-join-room", safe(({ code, name }) => {
       const room = monopolyRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("monopoly-error", { message: "Room not found." });
-      joinMonopolyRoom(socket, room, name || "Player");
+      joinMonopolyRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("monopoly-start-game", safe(() => {
@@ -451,15 +461,10 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("kart-create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new KartArena(code, io);
       kartRooms.set(code, room);
-
-      joinKartRoom(socket, room, name || "Racer");
+      joinKartRoom(socket, room, sanitizeName(name) || "Racer");
     }));
 
     socket.on("kart-rejoin", safe(({ roomCode, name }) => {
@@ -496,22 +501,17 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("battleship-create-room", safe(({ name, mode }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new BattleshipRoom(code, io, mode || "classic");
       battleshipRooms.set(code, room);
-
-      joinBattleshipRoom(socket, room, name || "Player");
+      joinBattleshipRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("battleship-join-room", safe(({ code, name }) => {
       const room = battleshipRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("battleship-error", { message: "Room not found." });
 
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.addPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("battleship-error", { message: result.error });
 
       currentBattleshipCode = room.code;
@@ -618,22 +618,17 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("uno-create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new UnoRoom(code, io);
       unoRooms.set(code, room);
-
-      joinUnoRoom(socket, room, name || "Player");
+      joinUnoRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("uno-join-room", safe(({ code, name }) => {
       const room = unoRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("uno-error", { message: "Room not found." });
 
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.addPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("uno-error", { message: result.error });
 
       currentUnoCode = room.code;
@@ -652,8 +647,7 @@ export function registerHandlers(io) {
       const state = room.getRoomState();
       if (!isRoomValid(state)) return socket.emit("uno-rejoin-failed");
 
-      room.removePlayer(socket.id);
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("uno-rejoin-failed");
 
       currentUnoCode = room.code;
@@ -663,6 +657,7 @@ export function registerHandlers(io) {
         code: room.code,
         roomState: room.getRoomState(),
       });
+      room.sendStateToAll();
     }));
 
     socket.on("uno-start-game", safe(() => {
@@ -762,7 +757,7 @@ export function registerHandlers(io) {
     function joinUnoRoom(sock, room, name) {
       currentUnoCode = room.code;
       sock.join(room.code);
-      room.addPlayer(sock.id, name);
+      room.addPlayer(sock.id, sanitizeName(name));
       sock.emit("uno-joined-room", {
         code: room.code,
         roomState: room.getRoomState(),
@@ -774,20 +769,16 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("ttt-create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new TicTacToeRoom(code, io);
       tttRooms.set(code, room);
-      joinTttRoom(socket, room, name || "Player");
+      joinTttRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("ttt-join-room", safe(({ code, name }) => {
       const room = tttRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("ttt-error", { message: "Room not found." });
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.addPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("ttt-error", { message: result.error });
 
       currentTttCode = room.code;
@@ -806,15 +797,13 @@ export function registerHandlers(io) {
       const state = room.getRoomState();
       if (!isRoomValid(state)) return socket.emit("ttt-rejoin-failed");
 
-      // Re-add player if they were removed
-      if (!room.players.has(socket.id)) {
-        const result = room.addPlayer(socket.id, name || "Player");
-        if (result.error) return socket.emit("ttt-rejoin-failed");
-      }
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("ttt-rejoin-failed");
 
       currentTttCode = room.code;
       socket.join(room.code);
-      socket.emit("ttt-rejoined", { code: room.code, roomState: state });
+      socket.emit("ttt-rejoined", { code: room.code, roomState: room.getRoomState() });
+      room.broadcastState();
     }));
 
     socket.on("ttt-make-move", safe(({ cellIndex }) => {
@@ -848,7 +837,7 @@ export function registerHandlers(io) {
     }));
 
     function joinTttRoom(sock, room, name) {
-      const result = room.addPlayer(sock.id, name);
+      const result = room.addPlayer(sock.id, sanitizeName(name));
       if (result.error) {
         sock.emit("ttt-error", { message: result.error });
         return;
@@ -863,20 +852,16 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("hang-create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new HangmanRoom(code, io);
       hangmanRooms.set(code, room);
-      joinHangmanRoom(socket, room, name || "Player");
+      joinHangmanRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("hang-join-room", safe(({ code, name }) => {
       const room = hangmanRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("hang-error", { message: "Room not found." });
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.addPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("hang-error", { message: result.error });
 
       currentHangmanCode = room.code;
@@ -890,14 +875,12 @@ export function registerHandlers(io) {
       const state = room.getRoomState();
       if (!isRoomValid(state)) return socket.emit("hang-rejoin-failed");
 
-      if (!room.players.has(socket.id)) {
-        const result = room.addPlayer(socket.id, name || "Player");
-        if (result.error) return socket.emit("hang-rejoin-failed");
-      }
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("hang-rejoin-failed");
 
       currentHangmanCode = room.code;
       socket.join(room.code);
-      socket.emit("hang-rejoined", { code: room.code, roomState: state });
+      socket.emit("hang-rejoined", { code: room.code, roomState: room.getRoomState() });
     }));
 
     socket.on("hang-start-game", safe(() => {
@@ -935,7 +918,7 @@ export function registerHandlers(io) {
     }));
 
     function joinHangmanRoom(sock, room, name) {
-      const result = room.addPlayer(sock.id, name);
+      const result = room.addPlayer(sock.id, sanitizeName(name));
       if (result.error) {
         sock.emit("hang-error", { message: result.error });
         return;
@@ -950,20 +933,16 @@ export function registerHandlers(io) {
     ───────────────────────────── */
 
     socket.on("carr-create-room", safe(({ name }) => {
-      let code = generateCode();
-      while (rooms.has(code) || mafiaRooms.has(code) || monopolyRooms.has(code) || kartRooms.has(code) || battleshipRooms.has(code) || unoRooms.has(code) || tttRooms.has(code) || hangmanRooms.has(code) || carromRooms.has(code)) {
-        code = generateCode();
-      }
-
+      const code = generateUniqueCode();
       const room = new CarromRoom(code, io);
       carromRooms.set(code, room);
-      joinCarromRoom(socket, room, name || "Player");
+      joinCarromRoom(socket, room, sanitizeName(name));
     }));
 
     socket.on("carr-join-room", safe(({ code, name }) => {
       const room = carromRooms.get(code?.toUpperCase());
       if (!room) return socket.emit("carr-error", { message: "Room not found." });
-      const result = room.addPlayer(socket.id, name || "Player");
+      const result = room.addPlayer(socket.id, sanitizeName(name));
       if (result.error) return socket.emit("carr-error", { message: result.error });
 
       currentCarromCode = room.code;
@@ -977,14 +956,12 @@ export function registerHandlers(io) {
       const state = room.getRoomState();
       if (!isRoomValid(state)) return socket.emit("carr-rejoin-failed");
 
-      if (!room.players.has(socket.id)) {
-        const result = room.addPlayer(socket.id, name || "Player");
-        if (result.error) return socket.emit("carr-rejoin-failed");
-      }
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("carr-rejoin-failed");
 
       currentCarromCode = room.code;
       socket.join(room.code);
-      socket.emit("carr-rejoined", { code: room.code, roomState: state });
+      socket.emit("carr-rejoined", { code: room.code, roomState: room.getRoomState() });
     }));
 
     socket.on("carr-start-game", safe(() => {
@@ -1022,7 +999,7 @@ export function registerHandlers(io) {
     }));
 
     function joinCarromRoom(sock, room, name) {
-      const result = room.addPlayer(sock.id, name);
+      const result = room.addPlayer(sock.id, sanitizeName(name));
       if (result.error) {
         sock.emit("carr-error", { message: result.error });
         return;
@@ -1082,38 +1059,38 @@ export function registerHandlers(io) {
         }
       }
 
-      // Uno cleanup
+      // Uno cleanup — mark disconnected so the player can rejoin with a new socket id
       if (currentUnoCode) {
         const uRoom = unoRooms.get(currentUnoCode);
         if (uRoom) {
-          uRoom.removePlayer(socket.id);
+          uRoom.markDisconnected(socket.id);
           if (uRoom.isEmpty()) unoRooms.delete(currentUnoCode);
         }
       }
 
-      // TicTacToe cleanup
+      // TicTacToe cleanup — mark disconnected so the player can rejoin
       if (currentTttCode) {
         const tRoom = tttRooms.get(currentTttCode);
         if (tRoom) {
-          tRoom.removePlayer(socket.id);
+          tRoom.markDisconnected(socket.id);
           if (tRoom.isEmpty()) tttRooms.delete(currentTttCode);
         }
       }
 
-      // Hangman cleanup
+      // Hangman cleanup — mark disconnected so the player can rejoin
       if (currentHangmanCode) {
         const hRoom = hangmanRooms.get(currentHangmanCode);
         if (hRoom) {
-          hRoom.removePlayer(socket.id);
+          hRoom.markDisconnected(socket.id);
           if (hRoom.isEmpty()) hangmanRooms.delete(currentHangmanCode);
         }
       }
 
-      // Carrom cleanup
+      // Carrom cleanup — mark disconnected so the player can rejoin
       if (currentCarromCode) {
         const cRoom = carromRooms.get(currentCarromCode);
         if (cRoom) {
-          cRoom.removePlayer(socket.id);
+          cRoom.markDisconnected(socket.id);
           if (cRoom.isEmpty()) carromRooms.delete(currentCarromCode);
         }
       }

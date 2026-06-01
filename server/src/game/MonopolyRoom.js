@@ -107,7 +107,7 @@ export class MonopolyRoom {
     if (this.players.size > 6) return { error: "Maximum 6 players." };
 
     // Apply settings
-    if (settings.startingMoney) this.settings.startingMoney = settings.startingMoney;
+    if (settings.startingMoney !== undefined) this.settings.startingMoney = settings.startingMoney;
     if (settings.mode) this.settings.mode = settings.mode;
     if (settings.turnTimer !== undefined) this.settings.turnTimer = settings.turnTimer;
     if (settings.freeParking !== undefined) this.settings.freeParking = settings.freeParking;

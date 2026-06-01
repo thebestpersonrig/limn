@@ -299,20 +299,6 @@ export class BattleshipRoom {
     }
     this.abilityUsedThisTurn = true;
 
-    // Collect ALL sunk ships from ability fire
-    const sunkShips = [];
-    for (const cell of resultCells) {
-      if (cell.result === "hit") {
-        for (const s of opponent.ships) {
-          if (s.sunk && !sunkShips.includes(s.type)) {
-            // Check if it was just sunk by this ability
-            const justSunk = s.cells.every(c => opponent.shotsReceived[c.r][c.c] === "hit");
-            if (justSunk) sunkShips.push(s.type);
-          }
-        }
-      }
-    }
-
     const gameOver = opponent.ships.every(s => s.sunk);
     if (gameOver) {
       this.winner = id;

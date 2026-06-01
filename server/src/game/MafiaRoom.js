@@ -67,7 +67,7 @@ export class MafiaRoom {
     this.broadcast("mafia-player-left", { playerId: socketId, name: player.name });
 
     if (this.phase !== "lobby" && this.phase !== "gameEnd") {
-      player.isAlive = false;
+      // player already deleted from the map above; checkWin counts only remaining entries
       this.broadcast("mafia-room-state", this.getRoomState());
 
       const winner = this.checkWin();
@@ -186,7 +186,7 @@ export class MafiaRoom {
     this.broadcast("mafia-day-message", {
       playerId: socketId,
       name: player.name,
-      text: text.trim(),
+      text: text.trim().slice(0, 200),
     });
   }
 
@@ -249,6 +249,7 @@ export class MafiaRoom {
   }
 
   resolveVote() {
+    if (this.phase !== "vote") return; // guard against double-call (timer + all-voted race)
     this.stopTimer();
     this.phase = "elimResult";
 
@@ -427,12 +428,13 @@ export class MafiaRoom {
     if (!player || !player.isAlive || player.role !== "mafia") return;
     if (!text.trim()) return;
 
+    const safe = text.trim().slice(0, 200);
     for (const p of this.players.values()) {
       if (p.role === "mafia" && p.isAlive) {
         this.io.to(p.id).emit("mafia-night-message", {
           playerId: socketId,
           name: player.name,
-          text: text.trim(),
+          text: safe,
         });
       }
     }
@@ -567,10 +569,14 @@ export class MafiaRoom {
     }
 
     // Doctor save
-    const doctorSaved = this.doctorTarget === killTarget;
+    const doctorSaved = killTarget !== null && this.doctorTarget === killTarget;
 
-    // Witch heal (saves the mafia target)
-    const witchSaved = this.witchHealTarget && killTarget;
+    // Witch heal: saved if witch healed the mafia's specific target,
+    // or used "__mafia_target__" (auto-heal whoever mafia kills)
+    const witchSaved =
+      this.witchHealTarget !== null &&
+      killTarget !== null &&
+      (this.witchHealTarget === "__mafia_target__" || this.witchHealTarget === killTarget);
 
     const saved = doctorSaved || witchSaved;
 

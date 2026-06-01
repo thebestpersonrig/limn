@@ -32,11 +32,38 @@ export class CarromRoom {
 
     const index = this.players.size;
     const color = index === 0 ? "white" : "black";
-    this.players.set(id, { id, name, color, index });
+    this.players.set(id, { id, name, color, index, disconnected: false });
     this.playerOrder.push(id);
 
     this.broadcast("carr-room-state", this.getRoomState());
     return {};
+  }
+
+  // Mark disconnected but keep in map so they can rejoin with new socket id
+  markDisconnected(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.disconnected = true;
+    this.broadcast("carr-player-disconnected", { playerId: id, name: player.name });
+    this.broadcast("carr-room-state", this.getRoomState());
+  }
+
+  // Restore a disconnected player by name, updating their socket id
+  rejoinPlayer(newId, name) {
+    for (const [oldId, player] of this.players) {
+      if (player.name === name && player.disconnected) {
+        this.players.delete(oldId);
+        player.id = newId;
+        player.disconnected = false;
+        this.players.set(newId, player);
+
+        const idx = this.playerOrder.indexOf(oldId);
+        if (idx !== -1) this.playerOrder[idx] = newId;
+
+        return { success: true };
+      }
+    }
+    return { error: "No disconnected player found with that name." };
   }
 
   removePlayer(id) {

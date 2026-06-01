@@ -8,7 +8,7 @@ export class TicTacToeRoom {
   constructor(code, io) {
     this.code = code;
     this.io = io;
-    this.players = new Map();   // id -> { id, name, symbol }
+    this.players = new Map();   // id -> { id, name, symbol, disconnected }
     this.phase = "lobby";       // lobby | playing | ended
     this.board = Array(9).fill("");
     this.currentTurn = "X";
@@ -19,7 +19,7 @@ export class TicTacToeRoom {
     this.winner = null;
     this.winningLine = null;
     this.firstSymbol = "X";     // alternates each round
-    this.rematchVotes = new Set();
+    this.rematchVotes = new Set(); // stores player symbols, not socket IDs
   }
 
   addPlayer(id, name) {
@@ -27,13 +27,40 @@ export class TicTacToeRoom {
     if (this.phase !== "lobby") return { error: "Game already in progress." };
 
     const symbol = this.players.size === 0 ? "X" : "O";
-    this.players.set(id, { id, name, symbol });
+    this.players.set(id, { id, name, symbol, disconnected: false });
 
     if (symbol === "X") this.playerX = id;
     else this.playerO = id;
 
     this.broadcast("ttt-room-state", this.getRoomState());
     return {};
+  }
+
+  // Mark disconnected but keep in map so they can rejoin with new socket id
+  markDisconnected(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.disconnected = true;
+    this.broadcast("ttt-player-disconnected", { playerId: id, name: player.name });
+    this.broadcast("ttt-room-state", this.getRoomState());
+  }
+
+  // Restore a disconnected player by matching on name
+  rejoinPlayer(newId, name) {
+    for (const [oldId, player] of this.players) {
+      if (player.name === name && player.disconnected) {
+        this.players.delete(oldId);
+        player.id = newId;
+        player.disconnected = false;
+        this.players.set(newId, player);
+
+        if (player.symbol === "X") this.playerX = newId;
+        else this.playerO = newId;
+
+        return { success: true };
+      }
+    }
+    return { error: "No disconnected player found with that name." };
   }
 
   removePlayer(id) {
@@ -43,7 +70,7 @@ export class TicTacToeRoom {
 
     if (this.phase === "playing") {
       // Other player wins by forfeit
-      const remaining = [...this.players.values()][0];
+      const remaining = [...this.players.values()].find(p => !p.disconnected);
       if (remaining) {
         this.winner = remaining.symbol;
         this.phase = "ended";
@@ -115,16 +142,18 @@ export class TicTacToeRoom {
 
   requestRematch(socketId) {
     if (!this.winner) return;
-    this.rematchVotes.add(socketId);
+    const player = this.players.get(socketId);
+    if (!player) return;
+
+    // Track by symbol so a reconnected player (new socket id) still counts
+    this.rematchVotes.add(player.symbol);
 
     if (this.rematchVotes.size >= 2) {
       this.round++;
       this.firstSymbol = this.firstSymbol === "X" ? "O" : "X";
       this.startGame();
     } else {
-      this.broadcast("ttt-rematch-waiting", {
-        from: this.players.get(socketId)?.name || "Opponent",
-      });
+      this.broadcast("ttt-rematch-waiting", { from: player.name });
     }
   }
 
@@ -158,6 +187,7 @@ export class TicTacToeRoom {
       scores: this.scores,
       round: this.round,
       opponentName: opponent?.name || null,
+      opponentDisconnected: opponent?.disconnected || false,
       phase: this.phase,
       winner: this.winner,
       winningLine: this.winningLine,
@@ -168,13 +198,18 @@ export class TicTacToeRoom {
     return {
       code: this.code,
       phase: this.phase,
-      players: [...this.players.values()].map(p => ({ id: p.id, name: p.name, symbol: p.symbol })),
+      players: [...this.players.values()].map(p => ({
+        id: p.id, name: p.name, symbol: p.symbol, disconnected: p.disconnected,
+      })),
       round: this.round,
       scores: this.scores,
     };
   }
 
-  isEmpty() { return this.players.size === 0; }
+  // Room is only truly empty when no player record remains at all
+  isEmpty() {
+    return this.players.size === 0;
+  }
 
   broadcast(event, data) { this.io.to(this.code).emit(event, data); }
 }

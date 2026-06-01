@@ -76,12 +76,48 @@ export class UnoRoom {
     if (this.players.size >= 6) return { error: "Room is full." };
     if (this.phase !== "lobby") return { error: "Game already started." };
 
-    this.players.set(id, { id, name, hand: [], calledUno: false });
+    this.players.set(id, { id, name, hand: [], calledUno: false, disconnected: false });
     this.playerOrder.push(id);
 
     this.broadcast("uno-room-state", this.getRoomState());
     this.broadcast("uno-player-joined", { player: { id, name } });
     return {};
+  }
+
+  // Mark disconnected but keep hand/state so they can rejoin with new socket id
+  markDisconnected(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.disconnected = true;
+    this.broadcast("uno-player-disconnected", { playerId: id, name: player.name });
+    this.broadcast("uno-room-state", this.getRoomState());
+  }
+
+  // Restore a disconnected player by name, updating their socket id
+  rejoinPlayer(newId, name) {
+    for (const [oldId, player] of this.players) {
+      if (player.name === name && player.disconnected) {
+        this.players.delete(oldId);
+        player.id = newId;
+        player.disconnected = false;
+        this.players.set(newId, player);
+
+        const idx = this.playerOrder.indexOf(oldId);
+        if (idx !== -1) this.playerOrder[idx] = newId;
+
+        // If this player had a pending drawn card, update its playerId reference
+        if (this.drawnCard?.playerId === oldId) {
+          this.drawnCard.playerId = newId;
+        }
+        // If they were the pendingSwap target, update that too
+        if (this.pendingSwap === oldId) {
+          this.pendingSwap = newId;
+        }
+
+        return { success: true };
+      }
+    }
+    return { error: "No disconnected player found with that name." };
   }
 
   removePlayer(id) {
@@ -671,11 +707,22 @@ export class UnoRoom {
     // Sort hand: group by color (red, blue, green, yellow, wild), then by value
     const colorOrder = { red: 0, blue: 1, green: 2, yellow: 3, wild: 4 };
     const valueOrder = { "0":0,"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9, skip:10, reverse:11, draw2:12, wild:13, wild4:14 };
-    const sortedHand = me.hand.map(c => ({ ...c })).sort((a, b) => {
-      const cd = (colorOrder[a.color] ?? 5) - (colorOrder[b.color] ?? 5);
-      if (cd !== 0) return cd;
-      return (valueOrder[a.value] ?? 15) - (valueOrder[b.value] ?? 15);
-    });
+
+    const isMyDrawn = this.drawnCard?.playerId === socketId;
+    // Tag each card with its raw index so we can find the drawn card after sorting
+    const sortedHandWithIdx = me.hand
+      .map((c, i) => ({ ...c, _rawIdx: i }))
+      .sort((a, b) => {
+        const cd = (colorOrder[a.color] ?? 5) - (colorOrder[b.color] ?? 5);
+        if (cd !== 0) return cd;
+        return (valueOrder[a.value] ?? 15) - (valueOrder[b.value] ?? 15);
+      });
+    // Drawn card is always the last element in the raw hand
+    const drawnCardIndex = isMyDrawn
+      ? sortedHandWithIdx.findIndex(c => c._rawIdx === me.hand.length - 1)
+      : null;
+    // Strip the helper field before sending to client
+    const sortedHand = sortedHandWithIdx.map(({ _rawIdx, ...c }) => c);
 
     return {
       myHand: sortedHand,
@@ -691,8 +738,8 @@ export class UnoRoom {
       stackLevel: this.stackLevel,
       winner: this.winner,
       houseRules: { ...this.houseRules },
-      canPlayDrawn: this.drawnCard?.playerId === socketId,
-      drawnCardIndex: this.drawnCard?.playerId === socketId ? (me.hand.length - 1) : null,
+      canPlayDrawn: isMyDrawn,
+      drawnCardIndex,
       pendingSwap: this.pendingSwap === socketId,
       playerOrder: this.playerOrder,
     };

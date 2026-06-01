@@ -106,6 +106,8 @@ export default function App() {
         s.emit("monopoly-rejoin", session);
       } else if (session.gameType === "battleship") {
         s.emit("battleship-rejoin", session);
+      } else if (session.gameType === "uno") {
+        s.emit("uno-rejoin", session);
       } else if (session.gameType === "tictactoe") {
         s.emit("ttt-rejoin", session);
       } else if (session.gameType === "hangman") {
@@ -126,6 +128,21 @@ export default function App() {
       navigate("/");
     }
 
+    // When any game ends, immediately clear the session so that navigating
+    // to the hub (or a future reconnect) never bounces back into a finished room.
+    function onGameEnd() { clearSession(); }
+
+    const GAME_END_EVENTS = [
+      "game-end",           // Limn drawing game
+      "mafia-game-end",     // Mafia
+      "monopoly-game-end",  // Monopoly
+      "battleship-game-over",
+      "uno-game-over",
+      "ttt-game-over",
+      "hang-game-end",
+      "carr-match-over",
+    ];
+
     s.on("connect", onConnect);
     s.on("disconnect", onDisconnect);
 
@@ -137,6 +154,8 @@ export default function App() {
     s.on("ttt-rejoin-failed", onRejoinFailed);
     s.on("hang-rejoin-failed", onRejoinFailed);
     s.on("carr-rejoin-failed", onRejoinFailed);
+
+    for (const ev of GAME_END_EVENTS) s.on(ev, onGameEnd);
 
     return () => {
       s.off("connect", onConnect);
@@ -150,6 +169,8 @@ export default function App() {
       s.off("ttt-rejoin-failed", onRejoinFailed);
       s.off("hang-rejoin-failed", onRejoinFailed);
       s.off("carr-rejoin-failed", onRejoinFailed);
+
+      for (const ev of GAME_END_EVENTS) s.off(ev, onGameEnd);
     };
   }, [navigate]);
 
