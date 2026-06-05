@@ -1,0 +1,119 @@
+.ludo-home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f13;
+}
+
+.ludo-home-card {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.ludo-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 4px;
+  transition: color 0.15s;
+}
+.ludo-back:hover { color: #888; }
+
+.ludo-title {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: #fff;
+  margin: 0;
+  font-family: 'Georgia', serif;
+}
+
+.ludo-subtitle {
+  color: #555;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.ludo-playing-as {
+  font-size: 13px;
+  color: #555;
+}
+.ludo-playing-as strong {
+  color: #e85d5d;
+  font-weight: 600;
+}
+
+.ludo-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.ludo-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 700;
+}
+.ludo-input:focus { border-color: #e85d5d; }
+.ludo-input::placeholder { color: #444; letter-spacing: 0; font-weight: 400; }
+
+.ludo-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.lbtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.lbtn:active { transform: scale(0.98); }
+.lbtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.lbtn-primary { background: #e85d5d; color: #fff; }
+.lbtn-primary:hover:not(:disabled) { opacity: 0.9; }
+
+.lbtn-secondary { background: #2a2a3a; color: #ccc; }
+.lbtn-secondary:hover:not(:disabled) { background: #333348; }
+
+.lbtn-ghost { background: transparent; color: #555; font-size: 13px; }
+.lbtn-ghost:hover:not(:disabled) { color: #888; }
+
+@media (max-width: 480px) {
+  .ludo-home-card { padding: 36px 24px; }
+  .ludo-title { font-size: 42px; }
+}

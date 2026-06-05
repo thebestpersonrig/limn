@@ -44,6 +44,9 @@ export default function CarromGame() {
   // Board end overlay
   const [boardEndData, setBoardEndData] = useState(null);
 
+  const myColorRef = useRef(myColor);
+  useEffect(() => { myColorRef.current = myColor; }, [myColor]);
+
   const isMyTurn = myIndex === turn;
   const myBaseline = myColor === "white" ? "bottom" : "top";
   const baselineY = myBaseline === "bottom" ? BASELINE_Y_BOTTOM : BASELINE_Y_TOP;
@@ -110,7 +113,7 @@ export default function CarromGame() {
     function onOpponentShot({ strikerX, angle, force }) {
       // Replay opponent's shot on our board
       setSimulating(true);
-      const oppBaseline = myColor === "white" ? BASELINE_Y_TOP : BASELINE_Y_BOTTOM;
+      const oppBaseline = myColorRef.current === "white" ? BASELINE_Y_TOP : BASELINE_Y_BOTTOM;
       const { vx, vy } = launchVector(angle, force);
       const striker = { x: strikerX, y: oppBaseline, vx, vy };
 
@@ -190,7 +193,7 @@ export default function CarromGame() {
       socket.off("carr-error", onError);
       if (cancelSimRef.current) cancelSimRef.current();
     };
-  }, [socket, navigate, myColor, addToast]);
+  }, [socket, navigate, addToast]);
 
   // Reset striker when turn changes to me
   useEffect(() => {

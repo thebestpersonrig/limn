@@ -11,6 +11,8 @@ import { TicTacToeRoom } from "../game/TicTacToeRoom.js";
 import { HangmanRoom } from "../game/HangmanRoom.js";
 import { CarromRoom } from "../game/CarromRoom.js";
 import { ChessRoom } from "../game/ChessRoom.js";
+import { LudoRoom } from "../game/LudoRoom.js";
+import { PongRoom } from "../game/PongRoom.js";
 
 const rooms = new Map();
 const mafiaRooms = new Map();
@@ -22,6 +24,8 @@ const tttRooms = new Map();
 const hangmanRooms = new Map();
 const carromRooms = new Map();
 const chessRooms = new Map();
+const ludoRooms = new Map();
+const pongRooms = new Map();
 
 function generateCode() {
   // pad to ensure we always get 6 chars even for very small Math.random() values
@@ -35,6 +39,7 @@ function generateUniqueCode() {
   const allMaps = [
     rooms, mafiaRooms, monopolyRooms, kartRooms,
     battleshipRooms, unoRooms, tttRooms, hangmanRooms, carromRooms, chessRooms,
+    ludoRooms, pongRooms,
   ];
   let code;
   do { code = generateCode(); } while (allMaps.some(m => m.has(code)));
@@ -83,6 +88,8 @@ export function registerHandlers(io) {
     let currentHangmanCode = null;
     let currentCarromCode = null;
     let currentChessCode = null;
+    let currentLudoCode = null;
+    let currentPongCode = null;
 
     /* ─────────────────────────────
        LIMN GAME
@@ -1108,6 +1115,165 @@ export function registerHandlers(io) {
     }
 
     /* ─────────────────────────────
+       LUDO
+    ───────────────────────────── */
+
+    socket.on("ludo-create-room", safe(({ name }) => {
+      const code = generateUniqueCode();
+      const room = new LudoRoom(code, io);
+      ludoRooms.set(code, room);
+      joinLudoRoom(socket, room, sanitizeName(name));
+    }));
+
+    socket.on("ludo-join-room", safe(({ code, name }) => {
+      const room = ludoRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("ludo-error", { message: "Room not found." });
+      const result = room.addPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("ludo-error", { message: result.error });
+      currentLudoCode = room.code;
+      socket.join(room.code);
+      socket.emit("ludo-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("ludo-rejoin", safe(({ roomCode, name }) => {
+      const room = ludoRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("ludo-rejoin-failed");
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("ludo-rejoin-failed");
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("ludo-rejoin-failed");
+      currentLudoCode = room.code;
+      socket.join(room.code);
+      socket.emit("ludo-rejoined", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("ludo-set-max-players", safe(({ n }) => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (!room) return;
+      const result = room.setMaxPlayers(socket.id, n);
+      if (result?.error) socket.emit("ludo-error", { message: result.error });
+    }));
+
+    socket.on("ludo-start-game", safe(() => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (!room) return;
+      const result = room.startGame(socket.id);
+      if (result?.error) socket.emit("ludo-error", { message: result.error });
+    }));
+
+    socket.on("ludo-roll-dice", safe(() => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (!room) return;
+      const result = room.rollDice(socket.id);
+      if (result?.error) socket.emit("ludo-error", { message: result.error });
+    }));
+
+    socket.on("ludo-move-token", safe(({ tokenIndex }) => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (!room) return;
+      const result = room.moveToken(socket.id, tokenIndex);
+      if (result?.error) socket.emit("ludo-error", { message: result.error });
+    }));
+
+    socket.on("ludo-get-state", safe(() => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (!room) return;
+      socket.emit("ludo-room-state", room.getRoomState());
+    }));
+
+    socket.on("ludo-leave", safe(() => {
+      const room = ludoRooms.get(currentLudoCode);
+      if (room) {
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) ludoRooms.delete(currentLudoCode);
+      }
+      currentLudoCode = null;
+    }));
+
+    function joinLudoRoom(sock, room, name) {
+      const result = room.addPlayer(sock.id, name);
+      if (result.error) { sock.emit("ludo-error", { message: result.error }); return; }
+      currentLudoCode = room.code;
+      sock.join(room.code);
+      sock.emit("ludo-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    /* ─────────────────────────────
+       PONG
+    ───────────────────────────── */
+
+    socket.on("pong-create-room", safe(({ name }) => {
+      const code = generateUniqueCode();
+      const room = new PongRoom(code, io);
+      pongRooms.set(code, room);
+      joinPongRoom(socket, room, sanitizeName(name));
+    }));
+
+    socket.on("pong-join-room", safe(({ code, name }) => {
+      const room = pongRooms.get(code?.toUpperCase());
+      if (!room) return socket.emit("pong-error", { message: "Room not found." });
+      const result = room.addPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("pong-error", { message: result.error });
+      currentPongCode = room.code;
+      socket.join(room.code);
+      socket.emit("pong-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("pong-rejoin", safe(({ roomCode, name }) => {
+      const room = pongRooms.get(roomCode?.toUpperCase());
+      if (!room) return socket.emit("pong-rejoin-failed");
+      const state = room.getRoomState();
+      if (!isRoomValid(state)) return socket.emit("pong-rejoin-failed");
+      const result = room.rejoinPlayer(socket.id, sanitizeName(name));
+      if (result.error) return socket.emit("pong-rejoin-failed");
+      currentPongCode = room.code;
+      socket.join(room.code);
+      socket.emit("pong-rejoined", { code: room.code, roomState: room.getRoomState() });
+    }));
+
+    socket.on("pong-start-game", safe(() => {
+      const room = pongRooms.get(currentPongCode);
+      if (!room) return;
+      const result = room.startGame();
+      if (result?.error) socket.emit("pong-error", { message: result.error });
+    }));
+
+    socket.on("pong-paddle-move", safe(({ paddleY }) => {
+      const room = pongRooms.get(currentPongCode);
+      if (!room) return;
+      room.updatePaddle(socket.id, paddleY);
+    }));
+
+    socket.on("pong-rematch", safe(() => {
+      const room = pongRooms.get(currentPongCode);
+      if (!room) return;
+      room.handleRematch(socket.id);
+    }));
+
+    socket.on("pong-get-state", safe(() => {
+      const room = pongRooms.get(currentPongCode);
+      if (!room) return;
+      socket.emit("pong-room-state", room.getRoomState());
+    }));
+
+    socket.on("pong-leave", safe(() => {
+      const room = pongRooms.get(currentPongCode);
+      if (room) {
+        room.removePlayer(socket.id);
+        if (room.isEmpty()) { room.destroy(); pongRooms.delete(currentPongCode); }
+      }
+      currentPongCode = null;
+    }));
+
+    function joinPongRoom(sock, room, name) {
+      const result = room.addPlayer(sock.id, name);
+      if (result.error) { sock.emit("pong-error", { message: result.error }); return; }
+      currentPongCode = room.code;
+      sock.join(room.code);
+      sock.emit("pong-joined-room", { code: room.code, roomState: room.getRoomState() });
+    }
+
+    /* ─────────────────────────────
        DISCONNECT
     ───────────────────────────── */
 
@@ -1199,6 +1365,24 @@ export function registerHandlers(io) {
         if (cRoom) {
           cRoom.markDisconnected(socket.id);
           if (cRoom.isEmpty()) carromRooms.delete(currentCarromCode);
+        }
+      }
+
+      // Ludo cleanup
+      if (currentLudoCode) {
+        const lRoom = ludoRooms.get(currentLudoCode);
+        if (lRoom) {
+          lRoom.markDisconnected(socket.id);
+          if (lRoom.isEmpty()) ludoRooms.delete(currentLudoCode);
+        }
+      }
+
+      // Pong cleanup
+      if (currentPongCode) {
+        const pRoom = pongRooms.get(currentPongCode);
+        if (pRoom) {
+          pRoom.removePlayer(socket.id);
+          if (pRoom.isEmpty()) { pRoom.destroy(); pongRooms.delete(currentPongCode); }
         }
       }
     });

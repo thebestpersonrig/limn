@@ -35,9 +35,19 @@ export default function CarromHome({ playerName }) {
     setError(""); setPending(true);
     connect(() => {
       const socket = getSocket();
+      function onJoined(data) {
+        socket.off("carr-error", onErr);
+        setPending(false);
+        handleJoined(data);
+      }
+      function onErr({ message }) {
+        socket.off("carr-joined-room", onJoined);
+        setPending(false);
+        setError(message);
+      }
+      socket.once("carr-joined-room", onJoined);
+      socket.once("carr-error", onErr);
       socket.emit("carr-create-room", { name: playerName });
-      socket.once("carr-joined-room", (data) => { setPending(false); handleJoined(data); });
-      socket.once("carr-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 
@@ -46,9 +56,19 @@ export default function CarromHome({ playerName }) {
     setError(""); setPending(true);
     connect(() => {
       const socket = getSocket();
+      function onJoined(data) {
+        socket.off("carr-error", onErr);
+        setPending(false);
+        handleJoined(data);
+      }
+      function onErr({ message }) {
+        socket.off("carr-joined-room", onJoined);
+        setPending(false);
+        setError(message);
+      }
+      socket.once("carr-joined-room", onJoined);
+      socket.once("carr-error", onErr);
       socket.emit("carr-join-room", { name: playerName, code: code.trim() });
-      socket.once("carr-joined-room", (data) => { setPending(false); handleJoined(data); });
-      socket.once("carr-error", ({ message }) => { setPending(false); setError(message); });
     });
   }
 

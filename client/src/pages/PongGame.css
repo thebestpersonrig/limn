@@ -1,0 +1,230 @@
+/* ── Pages ───────────────────────────────────────────────────────────────── */
+
+.pong-page {
+  min-height: 100vh;
+  background: #0a0a10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pong-game-wrap {
+  min-height: 100vh;
+  background: #0a0a10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* ── Lobby ───────────────────────────────────────────────────────────────── */
+
+.pong-lobby {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 44px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.pong-back-btn {
+  align-self: flex-start;
+  background: transparent; border: none;
+  color: #555; font-size: 13px; cursor: pointer;
+  transition: color 0.15s; padding: 0;
+}
+.pong-back-btn:hover { color: #888; }
+
+.pong-lobby-title {
+  font-size: 48px; font-weight: 800; letter-spacing: -2px;
+  color: #fff; margin: 0; font-family: Georgia, serif;
+}
+
+.pong-code-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #111118; border: 1px solid #222230; border-radius: 10px;
+  padding: 10px 16px; width: 100%; box-sizing: border-box;
+}
+.pong-code-label { color: #555; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.pong-code-val { color: #fff; font-weight: 700; letter-spacing: 3px; flex: 1; text-align: center; }
+.pong-copy-btn {
+  background: #2a2a3a; border: none; border-radius: 6px; color: #aaa;
+  font-size: 12px; cursor: pointer; padding: 5px 10px; transition: background 0.15s;
+}
+.pong-copy-btn:hover { background: #333348; color: #fff; }
+
+.pong-player-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.pong-player-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #111118; border: 1px solid #1e1e2a; border-radius: 8px; padding: 10px 14px;
+}
+.pong-player-row--empty { opacity: 0.4; }
+.pong-side-tag { font-size: 12px; font-weight: 700; min-width: 36px; }
+.pong-player-name { flex: 1; color: #ddd; font-size: 14px; }
+.pong-you-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  color: #4ade80; background: #1e3a2a; padding: 2px 8px; border-radius: 4px;
+}
+
+.pong-start-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  background: #00e5ff; color: #0a0a10; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+}
+.pong-start-btn:hover:not(:disabled) { opacity: 0.9; }
+.pong-start-btn:active:not(:disabled) { transform: scale(0.98); }
+.pong-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pong-wait-text { color: #555; font-size: 13px; }
+
+/* ── Score bar ───────────────────────────────────────────────────────────── */
+
+.pong-scorebar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: min(800px, calc(100vw - 32px));
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
+.pong-scorebar-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pong-scorebar-side--right {
+  flex-direction: row-reverse;
+}
+.pong-sb-name { font-size: 15px; font-weight: 700; }
+.pong-sb-you { font-size: 11px; color: #4ade80; font-weight: 600; }
+.pong-sb-scores {
+  display: flex;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 900;
+  font-family: Georgia, serif;
+  letter-spacing: -1px;
+  min-width: 90px;
+  justify-content: center;
+}
+.pong-sb-sep { color: #444; }
+
+/* ── Canvas ──────────────────────────────────────────────────────────────── */
+
+.pong-canvas-wrap {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #1e1e2a;
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.08);
+}
+
+.pong-canvas {
+  display: block;
+  max-width: min(800px, calc(100vw - 32px));
+  height: auto;
+  cursor: none;
+}
+
+.pong-hint {
+  color: #333;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Countdown overlay ───────────────────────────────────────────────────── */
+
+.pong-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 16, 0.6);
+  backdrop-filter: blur(2px);
+}
+.pong-countdown-num {
+  font-size: 120px;
+  font-weight: 900;
+  font-family: Georgia, serif;
+  color: #00e5ff;
+  text-shadow: 0 0 40px #00e5ff88;
+  animation: countPulse 1s ease-out;
+}
+@keyframes countPulse {
+  from { transform: scale(1.4); opacity: 0.5; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── End screen ──────────────────────────────────────────────────────────── */
+
+.pong-end {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.pong-end-result {
+  font-size: 36px;
+  font-weight: 900;
+  font-family: Georgia, serif;
+  letter-spacing: -1px;
+}
+.pong-end-winner {
+  font-size: 18px;
+  color: #aaa;
+}
+.pong-end-score {
+  display: flex;
+  gap: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  align-items: center;
+}
+.pong-end-dash { color: #444; }
+.pong-forfeit-note { color: #555; font-size: 13px; margin: 0; }
+.pong-end-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+.pong-rematch-btn { background: #00e5ff; color: #0a0a10; }
+
+/* ── Shared button style (duplicated from PongHome for end screen) ────────── */
+.pbtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.pbtn:active { transform: scale(0.98); }
+.pbtn-primary { background: #00e5ff; color: #0a0a10; }
+.pbtn-primary:hover { opacity: 0.9; }
+.pbtn-ghost { background: transparent; color: #555; font-size: 13px; border: 1px solid #2a2a3a; }
+.pbtn-ghost:hover { color: #888; }

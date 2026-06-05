@@ -30,6 +30,12 @@ import CarromGame from "./pages/CarromGame";
 import ChessHome from "./pages/ChessHome";
 import ChessGame from "./pages/ChessGame";
 
+import LudoHome from "./pages/LudoHome";
+import LudoGame from "./pages/LudoGame";
+
+import PongHome from "./pages/PongHome";
+import PongGame from "./pages/PongGame";
+
 import SnakeGame from "./pages/SnakeGame";
 
 import {
@@ -100,7 +106,9 @@ export default function App() {
         path === "/tictactoe" ||
         path === "/hangman" ||
         path === "/carrom" ||
-        path === "/chess"
+        path === "/chess" ||
+        path === "/ludo" ||
+        path === "/pong"
       )
         return;
 
@@ -148,6 +156,8 @@ export default function App() {
       "hang-game-end",
       "carr-match-over",
       "chess-game-over",
+      "ludo-game-over",
+      "pong-game-over",
     ];
 
     s.on("connect", onConnect);
@@ -162,6 +172,8 @@ export default function App() {
     s.on("hang-rejoin-failed", onRejoinFailed);
     s.on("carr-rejoin-failed", onRejoinFailed);
     s.on("chess-rejoin-failed", onRejoinFailed);
+    s.on("ludo-rejoin-failed", onRejoinFailed);
+    s.on("pong-rejoin-failed", onRejoinFailed);
 
     for (const ev of GAME_END_EVENTS) s.on(ev, onGameEnd);
 
@@ -178,6 +190,8 @@ export default function App() {
       s.off("hang-rejoin-failed", onRejoinFailed);
       s.off("carr-rejoin-failed", onRejoinFailed);
       s.off("chess-rejoin-failed", onRejoinFailed);
+      s.off("ludo-rejoin-failed", onRejoinFailed);
+      s.off("pong-rejoin-failed", onRejoinFailed);
 
       for (const ev of GAME_END_EVENTS) s.off(ev, onGameEnd);
     };
@@ -204,6 +218,8 @@ export default function App() {
       currentPath === "/hangman" ||
       currentPath === "/carrom" ||
       currentPath === "/chess" ||
+      currentPath === "/ludo" ||
+      currentPath === "/pong" ||
       currentPath === "/snake"
     ) {
       clearSession();
@@ -231,6 +247,10 @@ export default function App() {
         s.emit("carr-rejoin", session);
       } else if (session.gameType === "chess") {
         s.emit("chess-rejoin", session);
+      } else if (session.gameType === "ludo") {
+        s.emit("ludo-rejoin", session);
+      } else if (session.gameType === "pong") {
+        s.emit("pong-rejoin", session);
       } else {
         s.emit("rejoin", session);
       }
@@ -299,6 +319,14 @@ export default function App() {
       safeNavigate(roomState, `/chess/${code}`, { code });
     }
 
+    function onLudoRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/ludo/${code}`, { code });
+    }
+
+    function onPongRejoined({ code, roomState }) {
+      safeNavigate(roomState, `/pong/${code}`, { code });
+    }
+
     s.once("rejoined", onRejoined);
     s.once("mafia-rejoined", onMafiaRejoined);
     s.once("monopoly-rejoined", onMonopolyRejoined);
@@ -308,6 +336,8 @@ export default function App() {
     s.once("hang-rejoined", onHangRejoined);
     s.once("carr-rejoined", onCarrRejoined);
     s.once("chess-rejoined", onChessRejoined);
+    s.once("ludo-rejoined", onLudoRejoined);
+    s.once("pong-rejoined", onPongRejoined);
 
     if (s.connected) doRejoin();
     else {
@@ -325,6 +355,8 @@ export default function App() {
       s.off("hang-rejoined", onHangRejoined);
       s.off("carr-rejoined", onCarrRejoined);
       s.off("chess-rejoined", onChessRejoined);
+      s.off("ludo-rejoined", onLudoRejoined);
+      s.off("pong-rejoined", onPongRejoined);
     };
   }, [navigate]);
 
@@ -346,6 +378,8 @@ export default function App() {
     if (id === "hangman") navigate("/hangman");
     if (id === "carrom") navigate("/carrom");
     if (id === "chess") navigate("/chess");
+    if (id === "ludo") navigate("/ludo");
+    if (id === "pong") navigate("/pong");
     if (id === "snake") navigate("/snake");
   }
 
@@ -356,7 +390,7 @@ export default function App() {
   }
 
   const path = location.pathname;
-  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman|carrom|chess)\/[A-Z0-9]+$/i);
+  const isInRoom = path.match(/^\/(limn|mafia|monopoly|battleship|uno|tictactoe|hangman|carrom|chess|ludo|pong)\/[A-Z0-9]+$/i);
   const showDisconnect = !connected && isInRoom;
 
   return (
@@ -400,6 +434,12 @@ export default function App() {
 
         <Route path="/chess" element={<ChessHome playerName={playerName} />} />
         <Route path="/chess/:code" element={<ChessGame />} />
+
+        <Route path="/ludo" element={<LudoHome playerName={playerName} />} />
+        <Route path="/ludo/:code" element={<LudoGame />} />
+
+        <Route path="/pong" element={<PongHome playerName={playerName} />} />
+        <Route path="/pong/:code" element={<PongGame />} />
 
         <Route path="/snake" element={<SnakeGame />} />
 

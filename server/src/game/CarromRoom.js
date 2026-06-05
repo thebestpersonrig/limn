@@ -48,10 +48,13 @@ export class CarromRoom {
     this.broadcast("carr-room-state", this.getRoomState());
   }
 
-  // Restore a disconnected player by name, updating their socket id
+  // Restore a player by name, updating their socket id.
+  // Works whether or not the player is marked disconnected — handles the race
+  // where the new socket's rejoin arrives before the server has processed the
+  // old socket's disconnect event.
   rejoinPlayer(newId, name) {
     for (const [oldId, player] of this.players) {
-      if (player.name === name && player.disconnected) {
+      if (player.name === name) {
         this.players.delete(oldId);
         player.id = newId;
         player.disconnected = false;
@@ -63,7 +66,7 @@ export class CarromRoom {
         return { success: true };
       }
     }
-    return { error: "No disconnected player found with that name." };
+    return { error: "No player found with that name." };
   }
 
   removePlayer(id) {
