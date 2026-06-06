@@ -15,7 +15,8 @@ const BALL_SPEED_MAX = 14;
 const BALL_SPEED_INC = 0.25; // speed up on each paddle hit
 const PADDLE_SPEED = 7;
 const WIN_SCORE = 7;
-const TICK_MS = 16; // ~60 fps
+const TICK_MS = 16;          // ~60 fps physics
+const BROADCAST_EVERY = 3;   // send state every 3rd tick (~20 fps)
 
 export class PongRoom {
   constructor(code, io) {
@@ -31,6 +32,8 @@ export class PongRoom {
     this.gameNumber = 1;
     this._tickInterval = null;
     this._countdownTimeout = null;
+    this._forfeitTimers = new Map(); // id -> timeoutId
+    this._tickCount = 0;
   }
 
   // -------------------------------------------------------------------------
@@ -46,13 +49,48 @@ export class PongRoom {
       id, name, index,
       paddleY: CANVAS_H / 2 - PADDLE_H / 2,
       score: 0,
+      disconnected: false,
     });
     this.playerOrder.push(id);
     this.broadcast("pong-room-state", this.getRoomState());
     return {};
   }
 
+  markDisconnected(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.disconnected = true;
+    this.broadcast("pong-player-disconnected", { playerId: id, name: player.name });
+
+    if (this.phase === "playing" || this.phase === "countdown") {
+      this._stopTick();
+      // Give 30s to reconnect before forfeiting
+      const timer = setTimeout(() => {
+        if (player.disconnected) {
+          const remaining = [...this.players.values()].find(p => p.id !== id);
+          if (remaining && this.phase !== "ended") {
+            this.phase = "ended";
+            this.winner = remaining.index;
+            this.broadcast("pong-game-over", {
+              winner: remaining.index,
+              winnerName: remaining.name,
+              scores: [...this.scores],
+              reason: "forfeit",
+            });
+          }
+        }
+        this._forfeitTimers.delete(id);
+      }, 30000);
+      this._forfeitTimers.set(id, timer);
+    }
+
+    this.broadcast("pong-room-state", this.getRoomState());
+  }
+
   removePlayer(id) {
+    clearTimeout(this._forfeitTimers.get(id));
+    this._forfeitTimers.delete(id);
+
     const player = this.players.get(id);
     if (!player) return;
 
@@ -79,11 +117,21 @@ export class PongRoom {
   rejoinPlayer(newId, name) {
     for (const [oldId, player] of this.players) {
       if (player.name === name) {
+        clearTimeout(this._forfeitTimers.get(oldId));
+        this._forfeitTimers.delete(oldId);
+
         this.players.delete(oldId);
         player.id = newId;
+        player.disconnected = false;
         this.players.set(newId, player);
         const idx = this.playerOrder.indexOf(oldId);
         if (idx !== -1) this.playerOrder[idx] = newId;
+
+        // Resume game if it was interrupted by the disconnect
+        if (this.phase === "playing" || this.phase === "countdown") {
+          this._beginCountdown();
+        }
+
         return { success: true };
       }
     }
@@ -127,7 +175,8 @@ export class PongRoom {
     this.ball.x = CANVAS_W / 2;
     this.ball.y = CANVAS_H / 2 + (Math.random() - 0.5) * 80;
     const angle = (Math.random() * 0.5 - 0.25); // small vertical deviation
-    const dir = side !== null ? (side === 0 ? 1 : -1) : (Math.random() < 0.5 ? 1 : -1);
+    // side=0 → serve toward player 0 (left, dir=-1), side=1 → serve toward player 1 (right, dir=+1)
+    const dir = side !== null ? (side === 0 ? -1 : 1) : (Math.random() < 0.5 ? 1 : -1);
     this.ball.vx = dir * BALL_SPEED_INIT * Math.cos(angle);
     this.ball.vy = BALL_SPEED_INIT * Math.sin(angle);
   }
@@ -215,8 +264,11 @@ export class PongRoom {
       return;
     }
 
-    // Broadcast game state every tick
-    this.broadcast("pong-game-state", this._getGameState());
+    // Broadcast at ~20 fps (physics still run at ~60 fps)
+    this._tickCount++;
+    if (this._tickCount % BROADCAST_EVERY === 0) {
+      this.broadcast("pong-game-state", this._getGameState());
+    }
   }
 
   _handleScore(scoringIndex) {
@@ -239,10 +291,10 @@ export class PongRoom {
       return;
     }
 
-    // Resume after brief pause — serve to the player who was scored against
+    // Resume after brief pause — serve toward the player who was scored against (the loser)
     setTimeout(() => {
       if (this.phase !== "ended") {
-        this._resetBall(scoringIndex === 0 ? 1 : 0);
+        this._resetBall(1 - scoringIndex);
         this.phase = "playing";
         this._startTick();
       }
@@ -293,7 +345,7 @@ export class PongRoom {
   }
 
   isEmpty() {
-    return this.players.size === 0;
+    return this.players.size === 0 || [...this.players.values()].every(p => p.disconnected);
   }
 
   broadcast(event, data) {
@@ -302,5 +354,7 @@ export class PongRoom {
 
   destroy() {
     this._stopTick();
+    for (const timer of this._forfeitTimers.values()) clearTimeout(timer);
+    this._forfeitTimers.clear();
   }
 }

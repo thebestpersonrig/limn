@@ -1048,13 +1048,13 @@ export function registerHandlers(io) {
       if (!isRoomValid(state)) return socket.emit("chess-rejoin-failed");
 
       if (!room.players.has(socket.id)) {
-        const result = room.addPlayer(socket.id, sanitizeName(name));
+        const result = room.rejoinPlayer(socket.id, sanitizeName(name));
         if (result.error) return socket.emit("chess-rejoin-failed");
       }
 
       currentChessCode = room.code;
       socket.join(room.code);
-      socket.emit("chess-rejoined", { code: room.code, roomState: state });
+      socket.emit("chess-rejoined", { code: room.code, roomState: room.getRoomState() });
     }));
 
     socket.on("chess-start-game", safe(() => {
@@ -1092,6 +1092,20 @@ export function registerHandlers(io) {
       const room = chessRooms.get(currentChessCode);
       if (!room) return;
       socket.emit("chess-room-state", room.getRoomState());
+      // Send move history so a reconnecting client can rebuild the board
+      if (room.phase === "playing" && room.moves.length > 0) {
+        const player = room.players.get(socket.id);
+        if (player) {
+          socket.emit("chess-replay-moves", {
+            moves: room.moves,
+            myColor: player.color,
+            myIndex: player.index,
+            players: room.getPlayerList(),
+            scores: { ...room.scores },
+            gameNumber: room.gameNumber,
+          });
+        }
+      }
     }));
 
     socket.on("chess-leave", safe(() => {
@@ -1283,7 +1297,7 @@ export function registerHandlers(io) {
         const lRoom = rooms.get(currentRoomCode);
         if (lRoom) {
           lRoom.removePlayer(socket.id);
-          if (lRoom.isEmpty()) rooms.delete(currentRoomCode);
+          if (lRoom.isEmpty()) { lRoom.destroy(); rooms.delete(currentRoomCode); }
         }
       }
 
@@ -1350,12 +1364,12 @@ export function registerHandlers(io) {
         }
       }
 
-      // Chess cleanup
+      // Chess cleanup — mark disconnected so the player can rejoin within 30s before forfeiting
       if (currentChessCode) {
         const chRoom = chessRooms.get(currentChessCode);
         if (chRoom) {
-          chRoom.removePlayer(socket.id);
-          if (chRoom.isEmpty()) chessRooms.delete(currentChessCode);
+          chRoom.markDisconnected(socket.id);
+          if (chRoom.isEmpty()) { chRoom.destroy(); chessRooms.delete(currentChessCode); }
         }
       }
 
@@ -1377,11 +1391,11 @@ export function registerHandlers(io) {
         }
       }
 
-      // Pong cleanup
+      // Pong cleanup — mark disconnected so the player can rejoin within 30s before forfeiting
       if (currentPongCode) {
         const pRoom = pongRooms.get(currentPongCode);
         if (pRoom) {
-          pRoom.removePlayer(socket.id);
+          pRoom.markDisconnected(socket.id);
           if (pRoom.isEmpty()) { pRoom.destroy(); pongRooms.delete(currentPongCode); }
         }
       }

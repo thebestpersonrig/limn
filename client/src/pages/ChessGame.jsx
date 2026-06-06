@@ -25,6 +25,7 @@ export default function ChessGame() {
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
   const [gameOverData, setGameOverData] = useState(null);
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [drawOffered, setDrawOffered] = useState(false);
   const [promotionPending, setPromotionPending] = useState(null);
   const [rematchSent, setRematchSent] = useState(false);
@@ -52,6 +53,8 @@ export default function ChessGame() {
       setGameNumber(state.gameNumber || 1);
       const me = (state.players || []).find(p => p.id === socket.id);
       if (me) { setMyColor(me.color); setMyIndex(me.index); }
+      const anyDisconnected = (state.players || []).some(p => p.id !== socket.id && p.disconnected);
+      setOpponentDisconnected(anyDisconnected);
     }
 
     function onGameStart(data) {
@@ -87,6 +90,31 @@ export default function ChessGame() {
 
     function onDrawOffered() { setDrawOffered(true); }
 
+    function onReplayMoves({ moves, myColor: color, myIndex: idx, players: pl, scores: sc, gameNumber: gn }) {
+      // Rebuild board state by replaying all moves from initial position
+      let state = createInitialState();
+      for (const m of moves) {
+        state = makeMove(state, m.from.row, m.from.col, m.to.row, m.to.col, m.promoteTo) || state;
+      }
+      setPhase("playing");
+      setMyColor(color);
+      setMyIndex(idx);
+      setPlayers(pl);
+      setScores(sc);
+      setGameNumber(gn);
+      setGameState(state);
+      setSelectedSquare(null);
+      setValidMoves([]);
+      setGameOverData(null);
+      setDrawOffered(false);
+      setPromotionPending(null);
+      setRematchSent(false);
+    }
+
+    function onPlayerDisconnected() {
+      setOpponentDisconnected(true);
+    }
+
     function onError({ message }) {
       if (message === "Room not found.") { clearSession(); navigate("/chess"); }
     }
@@ -96,6 +124,8 @@ export default function ChessGame() {
     socket.on("chess-opponent-move", onOpponentMove);
     socket.on("chess-game-over", onGameOver);
     socket.on("chess-draw-offered", onDrawOffered);
+    socket.on("chess-replay-moves", onReplayMoves);
+    socket.on("chess-player-disconnected", onPlayerDisconnected);
     socket.on("chess-error", onError);
     socket.emit("chess-get-state");
 
@@ -105,6 +135,8 @@ export default function ChessGame() {
       socket.off("chess-opponent-move", onOpponentMove);
       socket.off("chess-game-over", onGameOver);
       socket.off("chess-draw-offered", onDrawOffered);
+      socket.off("chess-replay-moves", onReplayMoves);
+      socket.off("chess-player-disconnected", onPlayerDisconnected);
       socket.off("chess-error", onError);
     };
   }, [socket, navigate]);
@@ -395,6 +427,11 @@ export default function ChessGame() {
 
   return (
     <div className="chess-page">
+      {opponentDisconnected && (
+        <div className="chess-disconnect-banner">
+          Opponent disconnected — waiting up to 30s for them to reconnect...
+        </div>
+      )}
       <div className="chess-game">
         {/* Header */}
         <div className="chess-game-header">

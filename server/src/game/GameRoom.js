@@ -148,6 +148,8 @@ export class GameRoom {
   }
 
   endRound() {
+    clearTimeout(this.choiceTimer);
+    this.choiceTimer = null;
     this.stopTimer();
     this.state = "roundEnd";
     this.broadcast("round-end", { word: this.currentWord, players: this.getPlayersArray() });
@@ -200,6 +202,12 @@ export class GameRoom {
     this.revealedIndices.push(pick);
     const hint = buildHintWithReveals(this.currentWord, this.revealedIndices);
     this.broadcastExcept(this.currentDrawerId, "word-hint", { hint });
+  }
+
+  destroy() {
+    clearTimeout(this.choiceTimer);
+    this.choiceTimer = null;
+    this.stopTimer();
   }
 
   broadcast(event, data)              { this.io.to(this.code).emit(event, data); }

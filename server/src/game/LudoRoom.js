@@ -355,6 +355,8 @@ export class LudoRoom {
       next = (next + 1) % total;
       safety++;
     }
+    // If all players are finished/disconnected, game should have ended already
+    if (safety === total) return;
     this.currentTurn = next;
     this.consecutiveSixes = 0;
     this.dice = null;

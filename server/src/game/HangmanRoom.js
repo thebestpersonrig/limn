@@ -16,6 +16,7 @@ export class HangmanRoom {
     this.totalRounds = 0;
     this.timer = null;
     this.timeLeft = 0;
+    this.pickerDisconnectTimer = null;
   }
 
   addPlayer(id, name) {
@@ -37,7 +38,7 @@ export class HangmanRoom {
       // If the active picker disconnects, auto-advance after 15s if they haven't reconnected
       const currentPicker = this.playerOrder[this.currentPickerIndex];
       if (currentPicker === id) {
-        setTimeout(() => {
+        this.pickerDisconnectTimer = setTimeout(() => {
           try {
             if (this.players.get(id)?.disconnected) {
               this._advancePickerOrEnd();
@@ -62,6 +63,12 @@ export class HangmanRoom {
 
         const idx = this.playerOrder.indexOf(oldId);
         if (idx !== -1) this.playerOrder[idx] = newId;
+
+        // Clear the picker auto-advance timer if this player was the active picker
+        if (idx === this.currentPickerIndex) {
+          clearTimeout(this.pickerDisconnectTimer);
+          this.pickerDisconnectTimer = null;
+        }
 
         const score = this.scores.get(oldId) ?? 0;
         this.scores.delete(oldId);

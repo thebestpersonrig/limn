@@ -191,6 +191,10 @@ export default function PongGame() {
       if (me) setMyIndex(me.index);
     }
 
+    function onPlayerDisconnected() {
+      setPhase(prev => prev === "playing" || prev === "countdown" ? "reconnecting" : prev);
+    }
+
     function onCountdown({ seconds }) {
       setPhase("countdown");
       setCountdown(seconds);
@@ -229,6 +233,7 @@ export default function PongGame() {
     socket.on("pong-game-state", onGameState);
     socket.on("pong-scored", onScored);
     socket.on("pong-game-over", onGameOver);
+    socket.on("pong-player-disconnected", onPlayerDisconnected);
     socket.on("pong-error", onError);
     socket.emit("pong-get-state");
 
@@ -238,6 +243,7 @@ export default function PongGame() {
       socket.off("pong-game-state", onGameState);
       socket.off("pong-scored", onScored);
       socket.off("pong-game-over", onGameOver);
+      socket.off("pong-player-disconnected", onPlayerDisconnected);
       socket.off("pong-error", onError);
     };
   }, [socket, navigate, myId, phase]);
@@ -327,6 +333,23 @@ export default function PongGame() {
                 Play Again
               </button>
             )}
+            <button className="pbtn pbtn-ghost" onClick={handleLeave}>Leave</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Opponent reconnecting
+  // -----------------------------------------------------------------------
+  if (phase === "reconnecting") {
+    return (
+      <div className="pong-page">
+        <div className="pong-end">
+          <div className="pong-end-result" style={{ color: "#f0c040" }}>Opponent Disconnected</div>
+          <p style={{ color: "#888", marginTop: 8 }}>Waiting up to 30 seconds for them to reconnect...</p>
+          <div className="pong-end-btns" style={{ marginTop: 24 }}>
             <button className="pbtn pbtn-ghost" onClick={handleLeave}>Leave</button>
           </div>
         </div>

@@ -22,6 +22,7 @@ export class ChessRoom {
     this.drawOffer = null;      // player index who offered draw, or null
     this.scores = { w: 0, b: 0, draws: 0 };
     this.gameNumber = 1;
+    this._forfeitTimers = new Map(); // id -> timeoutId
   }
 
   addPlayer(id, name) {
@@ -30,14 +31,69 @@ export class ChessRoom {
 
     const index = this.players.size;
     const color = index === 0 ? "w" : "b";
-    this.players.set(id, { id, name, color, index });
+    this.players.set(id, { id, name, color, index, disconnected: false });
     this.playerOrder.push(id);
 
     this.broadcast("chess-room-state", this.getRoomState());
     return {};
   }
 
+  markDisconnected(id) {
+    const player = this.players.get(id);
+    if (!player) return;
+    player.disconnected = true;
+    this.broadcast("chess-player-disconnected", { playerId: id, name: player.name });
+
+    if (this.phase === "playing") {
+      // Give 30s to reconnect before forfeiting
+      const timer = setTimeout(() => {
+        if (player.disconnected && this.phase === "playing") {
+          const remaining = [...this.players.values()].find(p => p.id !== id);
+          if (remaining) {
+            this.phase = "ended";
+            this.status = "checkmate";
+            this.winner = remaining.color;
+            this.scores[remaining.color]++;
+            this.broadcast("chess-game-over", {
+              status: "forfeit",
+              winner: remaining.color,
+              winnerName: remaining.name,
+              scores: { ...this.scores },
+            });
+          }
+        }
+        this._forfeitTimers.delete(id);
+      }, 30000);
+      this._forfeitTimers.set(id, timer);
+    }
+
+    this.broadcast("chess-room-state", this.getRoomState());
+  }
+
+  rejoinPlayer(newId, name) {
+    for (const [oldId, player] of this.players) {
+      if (player.name === name && player.disconnected) {
+        clearTimeout(this._forfeitTimers.get(oldId));
+        this._forfeitTimers.delete(oldId);
+
+        this.players.delete(oldId);
+        player.id = newId;
+        player.disconnected = false;
+        this.players.set(newId, player);
+
+        const idx = this.playerOrder.indexOf(oldId);
+        if (idx !== -1) this.playerOrder[idx] = newId;
+
+        return { success: true };
+      }
+    }
+    return { error: "No disconnected player found with that name." };
+  }
+
   removePlayer(id) {
+    clearTimeout(this._forfeitTimers.get(id));
+    this._forfeitTimers.delete(id);
+
     const player = this.players.get(id);
     if (!player) return;
     this.players.delete(id);
@@ -47,7 +103,7 @@ export class ChessRoom {
       const remaining = [...this.players.values()][0];
       if (remaining) {
         this.phase = "ended";
-        this.status = "checkmate"; // forfeit treated as loss
+        this.status = "checkmate";
         this.winner = remaining.color;
         this.scores[remaining.color]++;
         this.broadcast("chess-game-over", {
@@ -185,6 +241,7 @@ export class ChessRoom {
 
   handleRematch(socketId) {
     if (this.phase !== "ended") return;
+    if (this.players.size !== 2) return;
     // Swap colors
     for (const p of this.players.values()) {
       p.color = p.color === "w" ? "b" : "w";
@@ -218,10 +275,15 @@ export class ChessRoom {
   }
 
   isEmpty() {
-    return this.players.size === 0;
+    return this.players.size === 0 || [...this.players.values()].every(p => p.disconnected);
   }
 
   broadcast(event, data) {
     this.io.to(this.code).emit(event, data);
+  }
+
+  destroy() {
+    for (const timer of this._forfeitTimers.values()) clearTimeout(timer);
+    this._forfeitTimers.clear();
   }
 }
